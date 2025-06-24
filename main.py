@@ -2,8 +2,10 @@
 # main.py - BagunçArt Aplicação Principal
 
 import flet as ft
+from flet import icons
 import asyncio
 from src.config.database import Database
+from src.config.database_init import init_database
 from src.utils.colors import Colors
 from src.views.login_view import LoginView
 from src.views.dashboard_view import DashboardView
@@ -24,7 +26,7 @@ class BaguncartApp:
         # Configurações da página
         self.setup_page()
         
-        # Conectar ao banco
+        # Conectar ao banco e inicializar
         self.connect_database()
         
         # Inicializar com tela de login
@@ -38,9 +40,9 @@ class BaguncartApp:
         self.page.bgcolor = Colors.WHITE
         
         # Configurações para mobile
-        self.page.window_width = 400
-        self.page.window_height = 800
-        self.page.window_resizable = False
+        self.page.window.width = 400
+        self.page.window.height = 800
+        self.page.window.resizable = False
         
         # StatusBar
         self.page.appbar = ft.AppBar(
@@ -50,10 +52,22 @@ class BaguncartApp:
         )
 
     def connect_database(self):
-        """Conectar ao banco de dados"""
+        """Conectar ao banco de dados e inicializar tabelas"""
         try:
             if self.db.connect():
                 print("✅ Conectado ao banco de dados MySQL")
+                
+                # Inicializar tabelas
+                if init_database(self.db):
+                    print("✅ Banco de dados inicializado")
+                else:
+                    print("⚠️ Erro ao inicializar banco de dados")
+                    
+                # Criar usuário admin
+                from src.services.auth_service import AuthService
+                auth_service = AuthService(self.db)
+                # O usuário admin já é criado no AuthService
+                    
             else:
                 print("❌ Erro ao conectar ao banco de dados")
                 self.show_error("Erro de conexão com o banco de dados")
@@ -67,7 +81,7 @@ class BaguncartApp:
             title=ft.Text("Erro"),
             content=ft.Text(message),
             actions=[
-                ft.TextButton("OK", on_click=lambda _: self.page.dialog.open.close())
+                ft.TextButton("OK", on_click=lambda _: self.close_dialog())
             ],
         )
         self.page.dialog = dlg
@@ -132,7 +146,7 @@ class BaguncartApp:
         self.page.appbar.title = ft.Text("Dashboard", color=Colors.WHITE, weight=ft.FontWeight.BOLD)
         self.page.appbar.actions = [
             ft.IconButton(
-                ft.icons.LOGOUT,
+                icons.LOGOUT,
                 icon_color=Colors.WHITE,
                 on_click=lambda _: self.logout()
             )
@@ -148,12 +162,12 @@ class BaguncartApp:
         self.page.appbar.title = ft.Text("Clientes", color=Colors.WHITE, weight=ft.FontWeight.BOLD)
         self.page.appbar.actions = [
             ft.IconButton(
-                ft.icons.PERSON_ADD,
+                icons.PERSON_ADD,
                 icon_color=Colors.WHITE,
                 on_click=lambda _: self.navigate_to("cadastro_cliente")
             ),
             ft.IconButton(
-                ft.icons.HOME,
+                icons.HOME,
                 icon_color=Colors.WHITE,
                 on_click=lambda _: self.navigate_to("dashboard")
             )
@@ -170,7 +184,7 @@ class BaguncartApp:
         self.page.appbar.title = ft.Text(title, color=Colors.WHITE, weight=ft.FontWeight.BOLD)
         self.page.appbar.actions = [
             ft.IconButton(
-                ft.icons.ARROW_BACK,
+                icons.ARROW_BACK,
                 icon_color=Colors.WHITE,
                 on_click=lambda _: self.navigate_to("clientes")
             )
@@ -189,7 +203,7 @@ class BaguncartApp:
         self.page.appbar.title = ft.Text("Serviços", color=Colors.WHITE, weight=ft.FontWeight.BOLD)
         self.page.appbar.actions = [
             ft.IconButton(
-                ft.icons.ARROW_BACK,
+                icons.ARROW_BACK,
                 icon_color=Colors.WHITE,
                 on_click=lambda _: self.navigate_to("cadastro_cliente")
             )
@@ -208,12 +222,12 @@ class BaguncartApp:
         self.page.appbar.title = ft.Text("Contratos", color=Colors.WHITE, weight=ft.FontWeight.BOLD)
         self.page.appbar.actions = [
             ft.IconButton(
-                ft.icons.ADD,
+                icons.ADD,
                 icon_color=Colors.WHITE,
                 on_click=lambda _: self.navigate_to("cadastro_cliente")
             ),
             ft.IconButton(
-                ft.icons.HOME,
+                icons.HOME,
                 icon_color=Colors.WHITE,
                 on_click=lambda _: self.navigate_to("dashboard")
             )
@@ -229,7 +243,7 @@ class BaguncartApp:
         self.page.appbar.title = ft.Text("Promoção", color=Colors.WHITE, weight=ft.FontWeight.BOLD)
         self.page.appbar.actions = [
             ft.IconButton(
-                ft.icons.ARROW_BACK,
+                icons.ARROW_BACK,
                 icon_color=Colors.WHITE,
                 on_click=lambda _: self.navigate_to("dashboard")
             )
@@ -248,7 +262,7 @@ class BaguncartApp:
         self.page.appbar.title = ft.Text("Notificação", color=Colors.WHITE, weight=ft.FontWeight.BOLD)
         self.page.appbar.actions = [
             ft.IconButton(
-                ft.icons.ARROW_BACK,
+                icons.ARROW_BACK,
                 icon_color=Colors.WHITE,
                 on_click=lambda _: self.navigate_to("dashboard")
             )
@@ -273,4 +287,4 @@ def main(page: ft.Page):
 
 if __name__ == "__main__":
     # Executar aplicação
-    ft.app(target=main, view=ft.WEB_BROWSER, port=8080)
+    ft.app(target=main, view=ft.AppView.WEB_BROWSER, port=8080)

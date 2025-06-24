@@ -10,4 +10,7 @@ class Colors:
     SUCCESS = "#28A745"
     WARNING = "#FFC107"
     ERROR = "#DC3545"
+    INFO = "#17A2B8"
+    BACKGROUND = "#FAFAFA"
+    BORDER = "#E0E0E0"
     TRANSPARENT = "#00000000"

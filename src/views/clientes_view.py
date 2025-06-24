@@ -1,5 +1,6 @@
 # src/views/clientes_view.py
 import flet as ft
+from flet import icons
 from src.utils.colors import Colors
 from src.services.cliente_service import ClienteService
 
@@ -17,7 +18,7 @@ class ClientesView:
         # Componentes
         self.search_field = ft.TextField(
             hint_text="Pesquisar clientes...",
-            prefix_icon=ft.icons.SEARCH,
+            prefix_icon=icons.SEARCH,
             border_color=Colors.GRAY,
             focused_border_color=Colors.PRIMARY,
             on_change=self.filter_clientes,
@@ -80,7 +81,7 @@ class ClientesView:
                     content=ft.Column(
                         [
                             ft.Icon(
-                                ft.icons.PEOPLE_OUTLINE,
+                                icons.PEOPLE_OUTLINE,
                                 size=60,
                                 color=Colors.GRAY,
                             ),
@@ -119,7 +120,7 @@ class ClientesView:
                     # Avatar
                     ft.Container(
                         content=ft.Icon(
-                            ft.icons.PERSON,
+                            icons.PERSON,
                             color=Colors.WHITE,
                             size=30,
                         ),
@@ -161,14 +162,14 @@ class ClientesView:
                     ft.Column(
                         [
                             ft.IconButton(
-                                ft.icons.PHONE,
+                                icons.PHONE,
                                 icon_color=Colors.SUCCESS,
                                 icon_size=20,
                                 tooltip="Ligar",
                                 on_click=lambda _, c=cliente: self.call_cliente(c),
                             ),
                             ft.IconButton(
-                                ft.icons.EDIT,
+                                icons.EDIT,
                                 icon_color=Colors.SECONDARY,
                                 icon_size=20,
                                 tooltip="Editar",
@@ -280,7 +281,7 @@ class ClientesView:
                             [
                                 self.search_field,
                                 ft.IconButton(
-                                    ft.icons.REFRESH,
+                                    icons.REFRESH,
                                     icon_color=Colors.PRIMARY,
                                     tooltip="Atualizar",
                                     on_click=lambda _: self.load_clientes(),

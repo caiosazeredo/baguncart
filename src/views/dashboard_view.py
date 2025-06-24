@@ -1,5 +1,6 @@
 # src/views/dashboard_view.py
 import flet as ft
+from flet import icons
 from datetime import datetime, timedelta
 from src.utils.colors import Colors
 
@@ -113,7 +114,7 @@ class DashboardView:
                     ft.Container(
                         content=ft.Row(
                             [
-                                ft.Icon(ft.icons.PERSON, color=Colors.PRIMARY, size=30),
+                                ft.Icon(icons.PERSON, color=Colors.PRIMARY, size=30),
                                 ft.Column(
                                     [
                                         ft.Text(
@@ -295,19 +296,19 @@ class DashboardView:
                                     [
                                         self.create_menu_item(
                                             "CLIENTES",
-                                            ft.icons.PEOPLE,
+                                            icons.PEOPLE,
                                             Colors.SECONDARY,
                                             lambda _: self.navigate_to("clientes")
                                         ),
                                         self.create_menu_item(
                                             "CONTRATOS",
-                                            ft.icons.DESCRIPTION,
+                                            icons.DESCRIPTION,
                                             Colors.SECONDARY,
                                             lambda _: self.navigate_to("contratos")
                                         ),
                                         self.create_menu_item(
                                             "PROMOÇÃO",
-                                            ft.icons.CAMPAIGN,
+                                            icons.CAMPAIGN,
                                             Colors.SECONDARY,
                                             lambda _: self.navigate_to("promocao")
                                         ),
@@ -322,13 +323,13 @@ class DashboardView:
                                     [
                                         self.create_menu_item(
                                             "CADASTRAR\nCLIENTE",
-                                            ft.icons.PERSON_ADD,
+                                            icons.PERSON_ADD,
                                             Colors.SECONDARY,
                                             lambda _: self.navigate_to("cadastro_cliente")
                                         ),
                                         self.create_menu_item(
                                             "NOTIFICAÇÃO",
-                                            ft.icons.NOTIFICATIONS,
+                                            icons.NOTIFICATIONS,
                                             Colors.SECONDARY,
                                             lambda _: self.navigate_to("notificacao")
                                         ),
@@ -348,25 +349,25 @@ class DashboardView:
                         content=ft.Row(
                             [
                                 ft.IconButton(
-                                    ft.icons.PHONE,
+                                    icons.PHONE,
                                     icon_color=Colors.WHITE,
                                     bgcolor=Colors.SUCCESS,
                                     icon_size=30,
                                 ),
                                 ft.IconButton(
-                                    ft.icons.PHOTO_CAMERA,
+                                    icons.PHOTO_CAMERA,
                                     icon_color=Colors.WHITE,
                                     bgcolor=Colors.SUCCESS,
                                     icon_size=30,
                                 ),
                                 ft.IconButton(
-                                    ft.icons.THUMB_UP,
+                                    icons.THUMB_UP,
                                     icon_color=Colors.WHITE,
                                     bgcolor=Colors.SUCCESS,
                                     icon_size=30,
                                 ),
                                 ft.IconButton(
-                                    ft.icons.PLAY_ARROW,
+                                    icons.PLAY_ARROW,
                                     icon_color=Colors.WHITE,
                                     bgcolor=Colors.SUCCESS,
                                     icon_size=30,

@@ -1,5 +1,6 @@
 # src/views/login_view.py
 import flet as ft
+from flet import icons
 import re
 from src.utils.colors import Colors
 from src.services.auth_service import AuthService
@@ -17,7 +18,7 @@ class LoginView:
             hint_text="00.000.000/0000-00",
             border_color=Colors.GRAY,
             focused_border_color=Colors.PRIMARY,
-            prefix_icon=ft.icons.BUSINESS,
+            prefix_icon=icons.BUSINESS,
             max_length=18,
             on_change=self.format_cnpj,
         )
@@ -27,7 +28,7 @@ class LoginView:
             hint_text="Digite sua senha",
             border_color=Colors.GRAY,
             focused_border_color=Colors.PRIMARY,
-            prefix_icon=ft.icons.LOCK,
+            prefix_icon=icons.LOCK,
             password=True,
             can_reveal_password=True,
         )
