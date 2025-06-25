@@ -94,6 +94,10 @@ http_parser
 2.12
 file:///C:/Users/caios/AppData/Local/Pub/Cache/hosted/pub.dev/http_parser-4.0.2/
 file:///C:/Users/caios/AppData/Local/Pub/Cache/hosted/pub.dev/http_parser-4.0.2/lib/
+intl
+3.0
+file:///C:/Users/caios/AppData/Local/Pub/Cache/hosted/pub.dev/intl-0.19.0/
+file:///C:/Users/caios/AppData/Local/Pub/Cache/hosted/pub.dev/intl-0.19.0/lib/
 leak_tracker
 3.2
 file:///C:/Users/caios/AppData/Local/Pub/Cache/hosted/pub.dev/leak_tracker-10.0.5/
@@ -226,6 +230,10 @@ flutter
 3.3
 file:///C:/Users/caios/Downloads/Sokrates-Codigo-main/Sokrates-Codigo-main/front/flutter/packages/flutter/
 file:///C:/Users/caios/Downloads/Sokrates-Codigo-main/Sokrates-Codigo-main/front/flutter/packages/flutter/lib/
+flutter_localizations
+3.2
+file:///C:/Users/caios/Downloads/Sokrates-Codigo-main/Sokrates-Codigo-main/front/flutter/packages/flutter_localizations/
+file:///C:/Users/caios/Downloads/Sokrates-Codigo-main/Sokrates-Codigo-main/front/flutter/packages/flutter_localizations/lib/
 flutter_test
 3.3
 file:///C:/Users/caios/Downloads/Sokrates-Codigo-main/Sokrates-Codigo-main/front/flutter/packages/flutter_test/

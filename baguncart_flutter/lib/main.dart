@@ -1,13 +1,20 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'firebase_options.dart';
 import 'screens/login_screen.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  await Firebase.initializeApp(
-    options: DefaultFirebaseOptions.currentPlatform,
-  );
+  
+  try {
+    await Firebase.initializeApp(
+      options: DefaultFirebaseOptions.currentPlatform,
+    );
+  } catch (e) {
+    print('❌ Erro ao inicializar Firebase: $e');
+  }
+  
   runApp(const BaguncartApp());
 }
 
@@ -19,6 +26,19 @@ class BaguncartApp extends StatelessWidget {
     return MaterialApp(
       title: 'BagunçArt - Sistema Administrativo',
       debugShowCheckedModeBanner: false,
+      
+      // Configurar localização em português
+      localizationsDelegates: const [
+        GlobalMaterialLocalizations.delegate,
+        GlobalWidgetsLocalizations.delegate,
+        GlobalCupertinoLocalizations.delegate,
+      ],
+      supportedLocales: const [
+        Locale('pt', 'BR'),
+        Locale('en', 'US'),
+      ],
+      locale: const Locale('pt', 'BR'),
+      
       theme: ThemeData(
         primarySwatch: Colors.purple,
         primaryColor: const Color(0xFF8B2F8B),
