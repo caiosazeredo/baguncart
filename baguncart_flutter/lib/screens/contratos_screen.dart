@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import '../models/models.dart';
-import '../services/database_service.dart';
+import '../services/firebase_service.dart';
 
 class ContratosScreen extends StatefulWidget {
   const ContratosScreen({super.key});
@@ -10,7 +10,7 @@ class ContratosScreen extends StatefulWidget {
 }
 
 class _ContratosScreenState extends State<ContratosScreen> {
-  final DatabaseService _db = DatabaseService();
+  final FirebaseService _firebaseService = FirebaseService();
   List<Contrato> _contratos = [];
   bool _isLoading = true;
 
@@ -21,7 +21,8 @@ class _ContratosScreenState extends State<ContratosScreen> {
   }
 
   Future<void> _loadContratos() async {
-    final contratos = await _db.getContratos();
+    setState(() => _isLoading = true);
+    final contratos = await _firebaseService.getContratos();
     if (mounted) {
       setState(() {
         _contratos = contratos;

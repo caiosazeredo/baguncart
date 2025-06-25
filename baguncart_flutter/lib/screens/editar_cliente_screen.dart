@@ -2,22 +2,34 @@ import 'package:flutter/material.dart';
 import '../models/models.dart';
 import '../services/firebase_service.dart';
 
-class CadastroScreen extends StatefulWidget {
-  const CadastroScreen({super.key});
+class EditarClienteScreen extends StatefulWidget {
+  final Cliente cliente;
+
+  const EditarClienteScreen({super.key, required this.cliente});
 
   @override
-  State<CadastroScreen> createState() => _CadastroScreenState();
+  State<EditarClienteScreen> createState() => _EditarClienteScreenState();
 }
 
-class _CadastroScreenState extends State<CadastroScreen> {
+class _EditarClienteScreenState extends State<EditarClienteScreen> {
   final _formKey = GlobalKey<FormState>();
-  final _nomeController = TextEditingController();
-  final _cpfController = TextEditingController();
-  final _telefoneController = TextEditingController();
-  final _emailController = TextEditingController();
-  final _enderecoController = TextEditingController();
+  late final TextEditingController _nomeController;
+  late final TextEditingController _cpfController;
+  late final TextEditingController _telefoneController;
+  late final TextEditingController _emailController;
+  late final TextEditingController _enderecoController;
   final FirebaseService _firebaseService = FirebaseService();
   bool _isLoading = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _nomeController = TextEditingController(text: widget.cliente.nome);
+    _cpfController = TextEditingController(text: widget.cliente.cpf);
+    _telefoneController = TextEditingController(text: widget.cliente.telefone ?? '');
+    _emailController = TextEditingController(text: widget.cliente.email ?? '');
+    _enderecoController = TextEditingController(text: widget.cliente.endereco ?? '');
+  }
 
   @override
   void dispose() {
@@ -62,7 +74,7 @@ class _CadastroScreenState extends State<CadastroScreen> {
     return null;
   }
 
-  Future<void> _cadastrarCliente() async {
+  Future<void> _atualizarCliente() async {
     if (!_formKey.currentState!.validate()) return;
 
     setState(() => _isLoading = true);
@@ -70,7 +82,8 @@ class _CadastroScreenState extends State<CadastroScreen> {
     try {
       final cpfLimpo = _cpfController.text.replaceAll(RegExp(r'[^0-9]'), '');
       
-      final cliente = Cliente(
+      final clienteAtualizado = Cliente(
+        id: widget.cliente.id,
         nome: _nomeController.text.trim(),
         cpf: cpfLimpo,
         telefone: _telefoneController.text.trim().isNotEmpty 
@@ -84,21 +97,87 @@ class _CadastroScreenState extends State<CadastroScreen> {
           : null,
       );
 
-      final id = await _firebaseService.insertCliente(cliente);
+      final sucesso = await _firebaseService.updateCliente(
+        widget.cliente.id!, 
+        clienteAtualizado
+      );
       
       if (mounted) {
-        if (id != null) {
+        if (sucesso) {
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(
-              content: Text('Cliente cadastrado com sucesso!'),
+              content: Text('Cliente atualizado com sucesso!'),
               backgroundColor: Colors.green,
             ),
           );
-          Navigator.pop(context);
+          Navigator.pop(context, true);
         } else {
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(
-              content: Text('Erro ao cadastrar cliente'),
+              content: Text('Erro ao atualizar cliente'),
+              backgroundColor: Colors.red,
+            ),
+          );
+        }
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Erro: $e'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _isLoading = false);
+    }
+  }
+
+  Future<void> _confirmarExclusao() async {
+    final resultado = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Confirmar Exclusão'),
+        content: Text('Deseja realmente excluir o cliente ${widget.cliente.nome}?'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('Cancelar'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(context, true),
+            style: TextButton.styleFrom(foregroundColor: Colors.red),
+            child: const Text('Excluir'),
+          ),
+        ],
+      ),
+    );
+
+    if (resultado == true) {
+      await _excluirCliente();
+    }
+  }
+
+  Future<void> _excluirCliente() async {
+    setState(() => _isLoading = true);
+
+    try {
+      final sucesso = await _firebaseService.deleteCliente(widget.cliente.id!);
+      
+      if (mounted) {
+        if (sucesso) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Cliente excluído com sucesso!'),
+              backgroundColor: Colors.green,
+            ),
+          );
+          Navigator.pop(context, true);
+        } else {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Erro ao excluir cliente'),
               backgroundColor: Colors.red,
             ),
           );
@@ -122,7 +201,13 @@ class _CadastroScreenState extends State<CadastroScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Cadastrar Cliente'),
+        title: const Text('Editar Cliente'),
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.delete, color: Colors.red),
+            onPressed: _isLoading ? null : _confirmarExclusao,
+          ),
+        ],
       ),
       body: Padding(
         padding: const EdgeInsets.all(16),
@@ -184,10 +269,10 @@ class _CadastroScreenState extends State<CadastroScreen> {
               SizedBox(
                 height: 50,
                 child: ElevatedButton(
-                  onPressed: _isLoading ? null : _cadastrarCliente,
+                  onPressed: _isLoading ? null : _atualizarCliente,
                   child: _isLoading
                       ? const CircularProgressIndicator(color: Colors.white)
-                      : const Text('CADASTRAR CLIENTE'),
+                      : const Text('ATUALIZAR CLIENTE'),
                 ),
               ),
               const SizedBox(height: 16),

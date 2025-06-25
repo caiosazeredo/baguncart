@@ -1,7 +1,8 @@
 import 'package:flutter/material.dart';
 import '../models/models.dart';
-import '../services/database_service.dart';
+import '../services/firebase_service.dart';
 import 'cadastro_screen.dart';
+import 'editar_cliente_screen.dart';
 
 class ClientesScreen extends StatefulWidget {
   const ClientesScreen({super.key});
@@ -11,7 +12,7 @@ class ClientesScreen extends StatefulWidget {
 }
 
 class _ClientesScreenState extends State<ClientesScreen> {
-  final DatabaseService _db = DatabaseService();
+  final FirebaseService _firebaseService = FirebaseService();
   List<Cliente> _clientes = [];
   List<Cliente> _clientesFiltrados = [];
   final _searchController = TextEditingController();
@@ -25,7 +26,7 @@ class _ClientesScreenState extends State<ClientesScreen> {
 
   Future<void> _loadClientes() async {
     setState(() => _isLoading = true);
-    final clientes = await _db.getClientes();
+    final clientes = await _firebaseService.getClientes();
     if (mounted) {
       setState(() {
         _clientes = clientes;
@@ -130,16 +131,16 @@ class _ClientesScreenState extends State<ClientesScreen> {
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
                                   Text('CPF: ${cliente.cpf}'),
-                                  if (cliente.telefone = null)
+                                  if (cliente.telefone != null)
                                     Text('Tel: ${cliente.telefone}'),
                                 ],
                               ),
-                              trailing: Row(
+                                                              trailing: Row(
                                 mainAxisSize: MainAxisSize.min,
                                 children: [
                                   IconButton(
                                     icon: const Icon(Icons.edit, color: Color(0xFF8B2F8B)),
-                                    onPressed: () => _showDevelopment(),
+                                    onPressed: () => _editarCliente(cliente),
                                   ),
                                   IconButton(
                                     icon: const Icon(Icons.description, color: Color(0xFFFF8C00)),
@@ -155,6 +156,19 @@ class _ClientesScreenState extends State<ClientesScreen> {
         ],
       ),
     );
+  }
+
+  Future<void> _editarCliente(Cliente cliente) async {
+    final resultado = await Navigator.push<bool>(
+      context,
+      MaterialPageRoute(
+        builder: (_) => EditarClienteScreen(cliente: cliente),
+      ),
+    );
+    
+    if (resultado == true) {
+      _loadClientes();
+    }
   }
 
   void _showDevelopment() {

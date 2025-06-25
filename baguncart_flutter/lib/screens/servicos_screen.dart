@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../models/models.dart';
-import '../services/database_service.dart';
+import '../services/firebase_service.dart';
+import 'cadastro_servico_screen.dart';
 
 class ServicosScreen extends StatefulWidget {
   const ServicosScreen({super.key});
@@ -10,7 +11,7 @@ class ServicosScreen extends StatefulWidget {
 }
 
 class _ServicosScreenState extends State<ServicosScreen> {
-  final DatabaseService _db = DatabaseService();
+  final FirebaseService _firebaseService = FirebaseService();
   List<Servico> _servicos = [];
   bool _isLoading = true;
 
@@ -21,7 +22,8 @@ class _ServicosScreenState extends State<ServicosScreen> {
   }
 
   Future<void> _loadServicos() async {
-    final servicos = await _db.getServicos();
+    setState(() => _isLoading = true);
+    final servicos = await _firebaseService.getServicos();
     if (mounted) {
       setState(() {
         _servicos = servicos;
@@ -30,10 +32,44 @@ class _ServicosScreenState extends State<ServicosScreen> {
     }
   }
 
+  Future<void> _adicionarServico() async {
+    final resultado = await Navigator.push<bool>(
+      context,
+      MaterialPageRoute(
+        builder: (_) => const CadastroServicoScreen(),
+      ),
+    );
+    
+    if (resultado == true) {
+      _loadServicos();
+    }
+  }
+
+  Future<void> _editarServico(Servico servico) async {
+    final resultado = await Navigator.push<bool>(
+      context,
+      MaterialPageRoute(
+        builder: (_) => CadastroServicoScreen(servico: servico),
+      ),
+    );
+    
+    if (resultado == true) {
+      _loadServicos();
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Serviços')),
+      appBar: AppBar(
+        title: const Text('Serviços'),
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.add),
+            onPressed: _adicionarServico,
+          ),
+        ],
+      ),
       body: _isLoading
           ? const Center(child: CircularProgressIndicator())
           : _servicos.isEmpty
@@ -61,16 +97,25 @@ class _ServicosScreenState extends State<ServicosScreen> {
                         ),
                         title: Text(servico.nome),
                         subtitle: Text('R\$ ${servico.preco.toStringAsFixed(2)}'),
-                        trailing: Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                          decoration: BoxDecoration(
-                            color: servico.ativo ? Colors.green : Colors.grey,
-                            borderRadius: BorderRadius.circular(8),
-                          ),
-                          child: Text(
-                            servico.ativo ? 'ATIVO' : 'INATIVO',
-                            style: const TextStyle(color: Colors.white, fontSize: 12),
-                          ),
+                        trailing: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                              decoration: BoxDecoration(
+                                color: servico.ativo ? Colors.green : Colors.grey,
+                                borderRadius: BorderRadius.circular(8),
+                              ),
+                              child: Text(
+                                servico.ativo ? 'ATIVO' : 'INATIVO',
+                                style: const TextStyle(color: Colors.white, fontSize: 12),
+                              ),
+                            ),
+                            IconButton(
+                              icon: const Icon(Icons.edit, color: Color(0xFF8B2F8B)),
+                              onPressed: () => _editarServico(servico),
+                            ),
+                          ],
                         ),
                       ),
                     );
@@ -78,11 +123,7 @@ class _ServicosScreenState extends State<ServicosScreen> {
                 ),
       floatingActionButton: FloatingActionButton(
         backgroundColor: const Color(0xFFFF8C00),
-        onPressed: () {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Funcionalidade em desenvolvimento')),
-          );
-        },
+        onPressed: _adicionarServico,
         child: const Icon(Icons.add, color: Colors.white),
       ),
     );
