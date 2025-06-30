@@ -347,11 +347,11 @@ class _CadastroNotificacaoScreenState extends State<CadastroNotificacaoScreen> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Row(
+                      const Row(
                         children: [
-                          const Icon(Icons.preview, color: Colors.blue),
-                          const SizedBox(width: 8),
-                          const Text(
+                          Icon(Icons.preview, color: Colors.blue),
+                          SizedBox(width: 8),
+                          Text(
                             'Preview da Notificação',
                             style: TextStyle(
                               fontWeight: FontWeight.bold,
