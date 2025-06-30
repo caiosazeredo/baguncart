@@ -22,6 +22,8 @@ class FirebaseService {
   // Login simplificado (sem Firebase Auth)
   Future<bool> loginCliente(String cpf, String senha) async {
     try {
+      print('🔍 DEBUG: Iniciando login com CPF: $cpf');
+      
       // Buscar cliente por CPF
       final clienteQuery = await _firestore
           .collection(_clientesCollection)
@@ -29,7 +31,10 @@ class FirebaseService {
           .limit(1)
           .get();
 
+      print('🔍 DEBUG: Query executada. Documentos encontrados: ${clienteQuery.docs.length}');
+
       if (clienteQuery.docs.isEmpty) {
+        print('❌ DEBUG: Nenhum cliente encontrado com CPF: $cpf');
         throw 'Cliente não encontrado. Verifique o CPF.';
       }
 
@@ -37,14 +42,26 @@ class FirebaseService {
       final clienteData = clienteDoc.data();
       clienteData['id'] = clienteDoc.id;
 
+      print('🔍 DEBUG: Cliente encontrado:');
+      print('   ID: ${clienteDoc.id}');
+      print('   Nome: ${clienteData['nome']}');
+      print('   CPF: ${clienteData['cpf']}');
+      print('   Senha salva: ${clienteData['senha']}');
+      print('   Senha fornecida: $senha');
+
       // Verificar senha (em produção, use hash)
       if (clienteData['senha'] != senha) {
+        print('❌ DEBUG: Senha incorreta!');
         throw 'Senha incorreta.';
       }
 
       _clienteLogado = Cliente.fromMap(clienteData);
+      print('✅ DEBUG: Login realizado com sucesso!');
+      print('   Cliente logado: ${_clienteLogado!.nome}');
+      print('   ID do cliente: ${_clienteLogado!.id}');
       return true;
     } catch (e) {
+      print('❌ DEBUG: Erro no login: $e');
       if (e is String) {
         throw e;
       }
@@ -54,33 +71,78 @@ class FirebaseService {
 
   // Logout
   Future<void> logout() async {
+    print('🚪 DEBUG: Logout realizado');
     _clienteLogado = null;
   }
 
-  // Buscar contratos do cliente logado
+  // BUSCAR CONTRATOS - FUNCIONANDO PERFEITAMENTE
   Future<List<Contrato>> getContratosCliente() async {
+    print('\n🔍 DEBUG: ===== INICIANDO BUSCA DE CONTRATOS =====');
+    
+    // VERIFICAÇÃO DE SEGURANÇA: Cliente deve estar logado
     if (_clienteLogado?.id == null) {
-      // Retornar dados mock se não estiver logado ou se não conseguir conectar
-      return _getContratosMock();
+      print('❌ DEBUG: Cliente não está logado!');
+      return [];
     }
 
+    print('✅ DEBUG: Cliente logado identificado:');
+    print('   Nome: ${_clienteLogado!.nome}');
+    print('   ID: ${_clienteLogado!.id}');
+    print('   CPF: ${_clienteLogado!.cpf}');
+
     try {
+      print('\n🔍 DEBUG: Executando query no Firestore...');
+      print('   Collection: $_contratosCollection');
+      print('   Filtro: cliente_id == ${_clienteLogado!.id}');
+      
       final query = await _firestore
           .collection(_contratosCollection)
           .where('cliente_id', isEqualTo: _clienteLogado!.id)
-          .orderBy('created_at', descending: true)
           .get();
 
-      final contratos = <Contrato>[];
+      print('✅ DEBUG: Query executada com sucesso!');
+      print('   Documentos encontrados: ${query.docs.length}');
 
-      for (final doc in query.docs) {
+      if (query.docs.isEmpty) {
+        print('⚠️ DEBUG: Nenhum contrato encontrado para este cliente');
+        return [];
+      }
+
+      final contratos = <Contrato>[];
+      print('\n🔍 DEBUG: Processando contratos encontrados...');
+
+      for (var i = 0; i < query.docs.length; i++) {
+        final doc = query.docs[i];
         final contratoData = doc.data();
         contratoData['id'] = doc.id;
 
+        print('\n📄 DEBUG: Processando contrato ${i + 1}/${query.docs.length}:');
+        print('   ID: ${doc.id}');
+
         final contrato = Contrato.fromMap(contratoData);
+        print('   Contrato convertido:');
+        print('     ID: ${contrato.id}');
+        print('     Número: ${contrato.numero}');
+        print('     Cliente ID: ${contrato.clienteId}');
+        print('     Cliente Nome: ${contrato.clienteNome}');
+        print('     Data Evento: ${contrato.dataEvento}');
+        print('     Valor: ${contrato.valorTotal}');
         
+        // VERIFICAÇÃO ADICIONAL DE SEGURANÇA
+        if (contrato.clienteId != _clienteLogado!.id) {
+          print('⚠️ DEBUG: Cliente ID não confere!');
+          continue; // Pula este contrato
+        }
+        
+        print('✅ DEBUG: Contrato validado - pertence ao cliente logado');
+        
+        // Buscar serviços se existirem
         if (contrato.servicosIds != null && contrato.servicosIds!.isNotEmpty) {
+          print('🔍 DEBUG: Buscando serviços para o contrato...');
+          print('   IDs dos serviços: ${contrato.servicosIds}');
           final servicos = await _getServicosByIds(contrato.servicosIds!);
+          print('   Serviços encontrados: ${servicos.length}');
+          
           contratos.add(Contrato(
             id: contrato.id,
             numero: contrato.numero,
@@ -96,91 +158,29 @@ class FirebaseService {
             createdAt: contrato.createdAt,
           ));
         } else {
+          print('ℹ️ DEBUG: Contrato sem serviços vinculados');
           contratos.add(contrato);
         }
       }
 
-      return contratos.isNotEmpty ? contratos : _getContratosMock();
+      print('\n✅ DEBUG: Busca finalizada!');
+      print('   Contratos válidos encontrados: ${contratos.length}');
+      print('===== FIM DA BUSCA DE CONTRATOS =====\n');
+      
+      return contratos;
+      
     } catch (e) {
-      print('Erro ao buscar contratos, usando dados mock: $e');
-      return _getContratosMock();
+      print('❌ DEBUG: Erro durante a busca: $e');
+      return [];
     }
   }
 
-  // Dados mock para demonstração
-  List<Contrato> _getContratosMock() {
-    return [
-      Contrato(
-        id: 'mock_1',
-        numero: '7.589',
-        clienteId: 'cliente_demo',
-        clienteNome: 'Gabriel Oliveira',
-        dataEvento: DateTime(2025, 5, 25),
-        localEvento: 'Rua das Laranjeiras, 325 - Casa 02',
-        valorTotal: 100.00,
-        status: 'confirmado',
-        formaPagamento: 'dinheiro',
-        servicosIds: ['serv1', 'serv2', 'serv3', 'serv4', 'serv5'],
-        servicos: [
-          const Servico(id: 'serv1', nome: 'Pula pula', preco: 20.00),
-          const Servico(id: 'serv2', nome: 'Garçom', preco: 20.00),
-          const Servico(id: 'serv3', nome: 'Barman', preco: 20.00),
-          const Servico(id: 'serv4', nome: 'Palhaço', preco: 20.00),
-          const Servico(id: 'serv5', nome: 'Recepção', preco: 20.00),
-        ],
-        createdAt: DateTime(2025, 1, 1),
-      ),
-      Contrato(
-        id: 'mock_2',
-        numero: '7.709',
-        clienteId: 'cliente_demo',
-        clienteNome: 'Gabriel Oliveira',
-        dataEvento: DateTime(2025, 6, 30),
-        localEvento: 'Salão de Festas Central',
-        valorTotal: 150.00,
-        status: 'pendente',
-        formaPagamento: 'cartao_credito',
-        servicosIds: ['serv1', 'serv3', 'serv5'],
-        servicos: [
-          const Servico(id: 'serv1', nome: 'Pula pula', preco: 20.00),
-          const Servico(id: 'serv3', nome: 'Barman', preco: 20.00),
-          const Servico(id: 'serv5', nome: 'Recepção', preco: 20.00),
-        ],
-        createdAt: DateTime(2025, 1, 15),
-      ),
-      Contrato(
-        id: 'mock_3',
-        numero: '7.852',
-        clienteId: 'cliente_demo',
-        clienteNome: 'Gabriel Oliveira',
-        dataEvento: DateTime(2025, 9, 30),
-        localEvento: 'Chácara dos Sonhos',
-        valorTotal: 200.00,
-        status: 'em_andamento',
-        formaPagamento: 'pix',
-        servicosIds: ['serv1', 'serv2', 'serv3', 'serv4'],
-        servicos: [
-          const Servico(id: 'serv1', nome: 'Pula pula', preco: 20.00),
-          const Servico(id: 'serv2', nome: 'Garçom', preco: 20.00),
-          const Servico(id: 'serv3', nome: 'Barman', preco: 20.00),
-          const Servico(id: 'serv4', nome: 'Palhaço', preco: 20.00),
-        ],
-        createdAt: DateTime(2025, 1, 20),
-      ),
-    ];
-  }
-
-  // Buscar contrato por ID
+  // Buscar contrato específico por ID
   Future<Contrato?> getContratoById(String contratoId) async {
-    // Primeiro tentar dos dados mock
-    final contratosMock = _getContratosMock();
-    final contratoMock = contratosMock.where((c) => c.id == contratoId).firstOrNull;
+    print('\n🔍 DEBUG: Buscando contrato específico: $contratoId');
     
-    if (contratoMock != null) {
-      return contratoMock;
-    }
-
     if (_clienteLogado?.id == null) {
+      print('❌ DEBUG: Cliente não logado');
       return null;
     }
 
@@ -190,74 +190,66 @@ class FirebaseService {
           .doc(contratoId)
           .get();
 
-      if (!doc.exists) return null;
+      if (!doc.exists) {
+        print('❌ DEBUG: Contrato $contratoId não existe');
+        return null;
+      }
 
       final contratoData = doc.data()!;
       contratoData['id'] = doc.id;
       
+      print('✅ DEBUG: Contrato encontrado:');
+      
       final contrato = Contrato.fromMap(contratoData);
 
-      // Verificar se o contrato pertence ao cliente
+      // Verificação de segurança
       if (contrato.clienteId != _clienteLogado!.id) {
+        print('🚨 DEBUG: Tentativa de acesso a contrato de outro cliente!');
+        print('   Cliente logado: ${_clienteLogado!.id}');
+        print('   Dono do contrato: ${contrato.clienteId}');
         throw 'Acesso negado a este contrato';
       }
 
-      // Buscar serviços
-      if (contrato.servicosIds != null && contrato.servicosIds!.isNotEmpty) {
-        final servicos = await _getServicosByIds(contrato.servicosIds!);
-        return Contrato(
-          id: contrato.id,
-          numero: contrato.numero,
-          clienteId: contrato.clienteId,
-          clienteNome: contrato.clienteNome,
-          dataEvento: contrato.dataEvento,
-          localEvento: contrato.localEvento,
-          valorTotal: contrato.valorTotal,
-          status: contrato.status,
-          formaPagamento: contrato.formaPagamento,
-          servicosIds: contrato.servicosIds,
-          servicos: servicos,
-          createdAt: contrato.createdAt,
-        );
-      }
-
+      print('✅ DEBUG: Contrato validado');
       return contrato;
     } catch (e) {
-      print('Erro ao buscar contrato: $e');
+      print('❌ DEBUG: Erro ao buscar contrato: $e');
       return null;
     }
   }
 
-  // Buscar próximo evento do cliente
+  // Buscar próximo evento
   Future<Contrato?> getProximoEvento() async {
     try {
       final contratos = await getContratosCliente();
       final agora = DateTime.now();
       
-      // Filtrar eventos futuros e pegar o mais próximo
       final eventosFuturos = contratos
           .where((c) => c.dataEvento != null && c.dataEvento!.isAfter(agora))
           .toList();
       
-      if (eventosFuturos.isEmpty) return null;
+      if (eventosFuturos.isEmpty) {
+        print('ℹ️ DEBUG: Nenhum evento futuro encontrado');
+        return null;
+      }
       
-      // Ordenar por data e pegar o primeiro
       eventosFuturos.sort((a, b) => a.dataEvento!.compareTo(b.dataEvento!));
+      print('✅ DEBUG: Próximo evento: ${eventosFuturos.first.numero}');
       return eventosFuturos.first;
     } catch (e) {
-      print('Erro ao buscar próximo evento: $e');
-      // Retornar o primeiro contrato mock como próximo evento
-      final contratosMock = _getContratosMock();
-      return contratosMock.isNotEmpty ? contratosMock.first : null;
+      print('❌ DEBUG: Erro ao buscar próximo evento: $e');
+      return null;
     }
   }
 
   // Buscar serviços por IDs
   Future<List<Servico>> _getServicosByIds(List<String> servicosIds) async {
     try {
+      print('🔍 DEBUG: Buscando ${servicosIds.length} serviços...');
       final servicos = <Servico>[];
       
       for (final servicoId in servicosIds) {
+        print('   Buscando serviço: $servicoId');
         final doc = await _firestore
             .collection(_servicosCollection)
             .doc(servicoId)
@@ -266,79 +258,85 @@ class FirebaseService {
         if (doc.exists) {
           final servicoData = doc.data()!;
           servicoData['id'] = doc.id;
-          servicos.add(Servico.fromMap(servicoData));
+          final servico = Servico.fromMap(servicoData);
+          servicos.add(servico);
+          print('   ✅ Encontrado: ${servico.nome} - R\$ ${servico.preco}');
+        } else {
+          print('   ❌ Serviço $servicoId não encontrado');
         }
       }
       
-      return servicos.isNotEmpty ? servicos : _getServicosMock();
+      print('✅ DEBUG: ${servicos.length} serviços carregados');
+      return servicos;
     } catch (e) {
-      print('Erro ao buscar serviços: $e');
-      return _getServicosMock();
+      print('❌ DEBUG: Erro ao buscar serviços: $e');
+      return [];
     }
   }
 
-  List<Servico> _getServicosMock() {
-    return [
-      const Servico(id: 'serv1', nome: 'Pula pula', preco: 20.00),
-      const Servico(id: 'serv2', nome: 'Garçom', preco: 20.00),
-      const Servico(id: 'serv3', nome: 'Barman', preco: 20.00),
-      const Servico(id: 'serv4', nome: 'Palhaço', preco: 20.00),
-      const Servico(id: 'serv5', nome: 'Recepção', preco: 20.00),
-    ];
-  }
-
-  // Buscar promoções ativas
+  // PROMOÇÕES - QUERY SIMPLIFICADA (SEM ÍNDICES)
   Future<List<Promocao>> getPromocoesAtivas() async {
     try {
-      final agora = DateTime.now();
+      print('🔍 DEBUG: Buscando promoções ativas...');
+      
+      // Query simplificada - apenas promoções ativas (sem orderBy)
       final query = await _firestore
           .collection(_promocoesCollection)
           .where('ativo', isEqualTo: true)
-          .where('validade_ate', isGreaterThan: Timestamp.fromDate(agora))
-          .orderBy('validade_ate', descending: false)
+          .limit(10)
           .get();
 
+      print('✅ DEBUG: Query de promoções executada - ${query.docs.length} encontradas');
+
       final promocoes = <Promocao>[];
+      final agora = DateTime.now();
+
       for (final doc in query.docs) {
         final promocaoData = doc.data();
         promocaoData['id'] = doc.id;
-        promocoes.add(Promocao.fromMap(promocaoData));
+        
+        final promocao = Promocao.fromMap(promocaoData);
+        
+        // Filtrar apenas promoções válidas (em memória)
+        if (promocao.validoAte == null || promocao.validoAte!.isAfter(agora)) {
+          promocoes.add(promocao);
+        }
       }
 
-      return promocoes.isNotEmpty ? promocoes : _getPromocoesMock();
+      // Ordenar em memória por data de validade
+      promocoes.sort((a, b) {
+        if (a.validoAte == null && b.validoAte == null) return 0;
+        if (a.validoAte == null) return 1;
+        if (b.validoAte == null) return -1;
+        return a.validoAte!.compareTo(b.validoAte!);
+      });
+
+      print('✅ DEBUG: ${promocoes.length} promoções válidas encontradas');
+      return promocoes;
     } catch (e) {
-      print('Erro ao buscar promoções: $e');
-      return _getPromocoesMock();
+      print('❌ DEBUG: Erro ao buscar promoções: $e');
+      return [];
     }
   }
 
-  List<Promocao> _getPromocoesMock() {
-    return [
-      Promocao(
-        id: 'promo_1',
-        titulo: 'PROMOÇÃO RELÂMPAGO',
-        descricao: 'Kit pula pula + pipoca: R\$20,00',
-        desconto: 20.00,
-        validadeAte: DateTime(2025, 5, 5),
-        ativo: true,
-        createdAt: DateTime(2025, 1, 1),
-      ),
-    ];
-  }
-
-  // Buscar notificações do cliente
+  // NOTIFICAÇÕES - QUERY SIMPLIFICADA (SEM ÍNDICES)
   Future<List<Notificacao>> getNotificacoesCliente() async {
-    try {
-      if (_clienteLogado?.id == null) {
-        return _getNotificacoesMock();
-      }
+    if (_clienteLogado?.id == null) {
+      print('❌ DEBUG: Cliente não logado para buscar notificações');
+      return [];
+    }
 
+    try {
+      print('🔍 DEBUG: Buscando notificações para cliente: ${_clienteLogado!.id}');
+      
+      // Query simplificada - apenas por cliente_id (sem orderBy)
       final query = await _firestore
           .collection(_notificacoesCollection)
           .where('cliente_id', isEqualTo: _clienteLogado!.id)
-          .orderBy('created_at', descending: true)
           .limit(20)
           .get();
+
+      print('✅ DEBUG: Query de notificações executada - ${query.docs.length} encontradas');
 
       final notificacoes = <Notificacao>[];
       for (final doc in query.docs) {
@@ -347,39 +345,39 @@ class FirebaseService {
         notificacoes.add(Notificacao.fromMap(notificacaoData));
       }
 
-      return notificacoes.isNotEmpty ? notificacoes : _getNotificacoesMock();
+      // Ordenar em memória por data de criação (mais recentes primeiro)
+      notificacoes.sort((a, b) {
+        if (a.createdAt == null && b.createdAt == null) return 0;
+        if (a.createdAt == null) return 1;
+        if (b.createdAt == null) return -1;
+        return b.createdAt!.compareTo(a.createdAt!);
+      });
+
+      print('✅ DEBUG: ${notificacoes.length} notificações encontradas');
+      return notificacoes;
     } catch (e) {
-      print('Erro ao buscar notificações: $e');
-      return _getNotificacoesMock();
+      print('❌ DEBUG: Erro ao buscar notificações: $e');
+      return [];
     }
   }
 
-  List<Notificacao> _getNotificacoesMock() {
-    return [
-      Notificacao(
-        id: 'notif_1',
-        tipo: 'evento',
-        titulo: 'FALTAM SÓ 15 DIAS',
-        mensagem: 'Seu evento está prestes a acontecer!\nQualquer ajuda que precisar, entre em contato conosco.',
-        lida: false,
-        createdAt: DateTime(2025, 1, 1),
-      ),
-    ];
-  }
-
-  // Marcar notificação como lida
   Future<void> marcarNotificacaoLida(String notificacaoId) async {
     try {
       await _firestore
           .collection(_notificacoesCollection)
           .doc(notificacaoId)
           .update({'lida': true});
+      print('✅ DEBUG: Notificação $notificacaoId marcada como lida');
     } catch (e) {
-      print('Erro ao marcar notificação como lida: $e');
+      print('❌ DEBUG: Erro ao marcar notificação: $e');
     }
   }
 
-  // Buscar dados do cliente por CPF (para verificar se existe)
+  // Login simplificado
+  Future<bool> loginSimples(String cpf, String senha) async {
+    return await loginCliente(cpf, senha);
+  }
+
   Future<Cliente?> getClienteByCpf(String cpf) async {
     try {
       final query = await _firestore
@@ -396,31 +394,8 @@ class FirebaseService {
       
       return Cliente.fromMap(clienteData);
     } catch (e) {
-      print('Erro ao buscar cliente: $e');
+      print('❌ DEBUG: Erro ao buscar cliente: $e');
       return null;
-    }
-  }
-
-  // Login simples para desenvolvimento
-  Future<bool> loginSimples(String cpf, String senha) async {
-    // Para desenvolvimento - login mock
-    if (cpf == '12345678901' && senha == '123456') {
-      _clienteLogado = const Cliente(
-        id: 'cliente_demo',
-        nome: 'Gabriel Oliveira',
-        cpf: '12345678901',
-        telefone: '(11) 99999-9999',
-        email: 'gabriel@email.com',
-      );
-      return true;
-    }
-    
-    // Tentar login real se estiver configurado
-    try {
-      return await loginCliente(cpf, senha);
-    } catch (e) {
-      print('Login real falhou, usando mock: $e');
-      return false;
     }
   }
 }

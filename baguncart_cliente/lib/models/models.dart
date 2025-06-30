@@ -137,7 +137,7 @@ class Contrato {
       numero: map['numero'] as String? ?? '',
       clienteId: map['cliente_id'] as String?,
       clienteNome: map['cliente_nome'] as String?,
-      dataEvento: map['data_evento'] is Timestamp
+      dataEvento: map['data_evento'] is Timestamp 
           ? (map['data_evento'] as Timestamp).toDate()
           : map['data_evento'] is String
               ? DateTime.tryParse(map['data_evento'])
@@ -189,8 +189,9 @@ class Promocao {
   final String? id;
   final String titulo;
   final String descricao;
+  final String tipo; // 'percentual' ou 'valor' - CAMPO COMPATÍVEL
   final double? desconto;
-  final DateTime? validadeAte;
+  final DateTime? validoAte; // COMPATÍVEL COM SISTEMA ADMIN
   final bool ativo;
   final DateTime? createdAt;
 
@@ -198,8 +199,9 @@ class Promocao {
     this.id,
     required this.titulo,
     required this.descricao,
+    this.tipo = 'percentual', // CAMPO COMPATÍVEL
     this.desconto,
-    this.validadeAte,
+    this.validoAte, // COMPATÍVEL COM SISTEMA ADMIN
     this.ativo = true,
     this.createdAt,
   });
@@ -208,8 +210,9 @@ class Promocao {
     return {
       'titulo': titulo,
       'descricao': descricao,
+      'tipo': tipo, // CAMPO COMPATÍVEL
       'desconto': desconto,
-      'validade_ate': validadeAte?.toIso8601String(),
+      'valido_ate': validoAte?.toIso8601String(), // COMPATÍVEL COM SISTEMA ADMIN
       'ativo': ativo,
     };
   }
@@ -219,11 +222,12 @@ class Promocao {
       id: map['id'] as String?,
       titulo: map['titulo'] as String? ?? '',
       descricao: map['descricao'] as String? ?? '',
+      tipo: map['tipo'] as String? ?? 'percentual', // CAMPO COMPATÍVEL
       desconto: (map['desconto'] as num?)?.toDouble(),
-      validadeAte: map['validade_ate'] is Timestamp
-          ? (map['validade_ate'] as Timestamp).toDate()
-          : map['validade_ate'] is String
-              ? DateTime.tryParse(map['validade_ate'])
+      validoAte: map['valido_ate'] is Timestamp // COMPATÍVEL COM SISTEMA ADMIN
+          ? (map['valido_ate'] as Timestamp).toDate()
+          : map['valido_ate'] is String
+              ? DateTime.tryParse(map['valido_ate'])
               : null,
       ativo: map['ativo'] as bool? ?? true,
       createdAt: map['created_at'] is Timestamp 
@@ -236,14 +240,14 @@ class Promocao {
 
   // Getter para verificar se a promoção ainda é válida
   bool get isValida {
-    if (validadeAte == null) return ativo;
-    return ativo && DateTime.now().isBefore(validadeAte!);
+    if (validoAte == null) return ativo;
+    return ativo && DateTime.now().isBefore(validoAte!);
   }
 }
 
 class Notificacao {
   final String? id;
-  final String tipo; // 'promocao', 'evento', 'geral'
+  final String tipo;
   final String titulo;
   final String mensagem;
   final bool lida;

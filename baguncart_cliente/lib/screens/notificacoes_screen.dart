@@ -51,7 +51,7 @@ class _NotificacoesScreenState extends State<NotificacoesScreen> {
             titulo: 'PROMOÇÃO RELÂMPAGO',
             descricao: 'Kit pula pula + pipoca: R\$20,00',
             desconto: 20.00,
-            validadeAte: null,
+            validoAte: null, // CORRIGIDO: validoAte em vez de validadeAte
           ),
         ];
         
@@ -171,51 +171,70 @@ class _NotificacoesScreenState extends State<NotificacoesScreen> {
               // Conteúdo
               Expanded(
                 child: _isLoading
-                    ? const Center(child: CircularProgressIndicator())
-                    : RefreshIndicator(
-                        onRefresh: _loadData,
-                        child: SingleChildScrollView(
-                          padding: const EdgeInsets.fromLTRB(24, 0, 24, 100),
-                          child: Column(
-                            children: [
-                              // Promoções
-                              if (_promocoes.isNotEmpty) ...[
-                                ..._promocoes.map((promocao) => _buildPromocaoCard(promocao)),
-                                const SizedBox(height: 20),
-                              ],
+                    ? const Center(
+                        child: CircularProgressIndicator(
+                          color: Color(0xFF8B2F8B),
+                        ),
+                      )
+                    : SingleChildScrollView(
+                        padding: const EdgeInsets.symmetric(horizontal: 24),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            // Título
+                            const Text(
+                              'NOTIFICAÇÕES',
+                              style: TextStyle(
+                                fontSize: 24,
+                                fontWeight: FontWeight.bold,
+                                color: Color(0xFF8B2F8B),
+                              ),
+                            ),
+                            
+                            const SizedBox(height: 20),
+                            
+                            // Notificações
+                            if (_notificacoes.isNotEmpty) ...[
+                              const Text(
+                                'Recentes',
+                                style: TextStyle(
+                                  fontSize: 18,
+                                  fontWeight: FontWeight.bold,
+                                  color: Colors.black87,
+                                ),
+                              ),
+                              const SizedBox(height: 12),
                               
-                              // Notificações
-                              if (_notificacoes.isNotEmpty) ...[
-                                ..._notificacoes.map((notificacao) => _buildNotificacaoCard(notificacao)),
-                              ],
+                              ...(_notificacoes.map((notificacao) => 
+                                _buildNotificacaoCard(notificacao)
+                              )),
                               
-                              // Caso não tenha nenhuma notificação
-                              if (_promocoes.isEmpty && _notificacoes.isEmpty) ...[
-                                const SizedBox(height: 100),
-                                const Icon(
-                                  Icons.notifications_none,
-                                  size: 64,
-                                  color: Colors.grey,
-                                ),
-                                const SizedBox(height: 16),
-                                const Text(
-                                  'Nenhuma notificação',
-                                  style: TextStyle(
-                                    fontSize: 18,
-                                    color: Colors.grey,
-                                  ),
-                                ),
-                                const SizedBox(height: 8),
-                                const Text(
-                                  'Você está em dia com tudo!',
-                                  style: TextStyle(
-                                    fontSize: 14,
-                                    color: Colors.grey,
-                                  ),
-                                ),
-                              ],
+                              const SizedBox(height: 20),
                             ],
-                          ),
+                            
+                            // Promoções
+                            if (_promocoes.isNotEmpty) ...[
+                              const Text(
+                                'Promoções Ativas',
+                                style: TextStyle(
+                                  fontSize: 18,
+                                  fontWeight: FontWeight.bold,
+                                  color: Colors.black87,
+                                ),
+                              ),
+                              const SizedBox(height: 12),
+                              
+                              ...(_promocoes.map((promocao) => 
+                                _buildPromocaoCard(promocao)
+                              )),
+                            ],
+                            
+                            // Caso não haja notificações
+                            if (_notificacoes.isEmpty && _promocoes.isEmpty)
+                              _buildEmptyState(),
+                            
+                            const SizedBox(height: 100), // Espaço para o bottom nav
+                          ],
                         ),
                       ),
               ),
@@ -263,219 +282,247 @@ class _NotificacoesScreenState extends State<NotificacoesScreen> {
     );
   }
 
-  Widget _buildPromocaoCard(Promocao promocao) {
+  Widget _buildNotificacaoCard(Notificacao notificacao) {
     return Container(
-      margin: const EdgeInsets.only(bottom: 20),
-      padding: const EdgeInsets.all(24),
-      decoration: BoxDecoration(
-        gradient: const LinearGradient(
-          colors: [Color(0xFF8B2F8B), Color(0xFF6A1B6A)],
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
+      margin: const EdgeInsets.only(bottom: 12),
+      child: Card(
+        elevation: 3,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(12),
         ),
-        borderRadius: BorderRadius.circular(20),
-        boxShadow: [
-          BoxShadow(
-            color: const Color(0xFF8B2F8B).withOpacity(0.3),
-            blurRadius: 20,
-            offset: const Offset(0, 10),
-          ),
-        ],
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                decoration: BoxDecoration(
-                  color: const Color(0xFFFF8C00),
-                  borderRadius: BorderRadius.circular(20),
-                ),
-                child: const Text(
-                  'ATENÇÃO',
-                  style: TextStyle(
+        child: InkWell(
+          onTap: () => _marcarComoLida(notificacao),
+          borderRadius: BorderRadius.circular(12),
+          child: Padding(
+            padding: const EdgeInsets.all(16),
+            child: Row(
+              children: [
+                // Ícone
+                Container(
+                  width: 50,
+                  height: 50,
+                  decoration: BoxDecoration(
+                    color: _getNotificacaoColor(notificacao.tipo),
+                    borderRadius: BorderRadius.circular(25),
+                  ),
+                  child: Icon(
+                    _getNotificacaoIcon(notificacao.tipo),
                     color: Colors.white,
-                    fontSize: 12,
-                    fontWeight: FontWeight.bold,
+                    size: 24,
                   ),
                 ),
-              ),
-            ],
-          ),
-          
-          const SizedBox(height: 16),
-          
-          const Text(
-            'PROMOÇÃO RELÂMPAGO',
-            style: TextStyle(
-              color: Colors.white,
-              fontSize: 18,
-              fontWeight: FontWeight.bold,
+                
+                const SizedBox(width: 16),
+                
+                // Conteúdo
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        notificacao.titulo,
+                        style: TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.bold,
+                          color: notificacao.lida ? Colors.grey : Colors.black87,
+                        ),
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        notificacao.mensagem,
+                        style: TextStyle(
+                          fontSize: 14,
+                          color: notificacao.lida ? Colors.grey : Colors.black54,
+                        ),
+                        maxLines: 3,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ],
+                  ),
+                ),
+                
+                // Indicador não lida
+                if (!notificacao.lida)
+                  Container(
+                    width: 8,
+                    height: 8,
+                    decoration: const BoxDecoration(
+                      color: Color(0xFFFF8C00),
+                      shape: BoxShape.circle,
+                    ),
+                  ),
+              ],
             ),
           ),
-          
-          const SizedBox(height: 12),
-          
+        ),
+      ),
+    );
+  }
+
+  Widget _buildPromocaoCard(Promocao promocao) {
+    return Container(
+      margin: const EdgeInsets.only(bottom: 12),
+      child: Card(
+        elevation: 3,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(12),
+        ),
+        child: Container(
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(12),
+            gradient: const LinearGradient(
+              colors: [Color(0xFFFF8C00), Color(0xFFFF6B35)],
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+            ),
+          ),
+          child: Padding(
+            padding: const EdgeInsets.all(16),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    const Icon(
+                      Icons.local_offer,
+                      color: Colors.white,
+                      size: 24,
+                    ),
+                    const SizedBox(width: 8),
+                    Text(
+                      promocao.titulo,
+                      style: const TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.white,
+                      ),
+                    ),
+                  ],
+                ),
+                
+                const SizedBox(height: 8),
+                
+                Text(
+                  promocao.descricao,
+                  style: const TextStyle(
+                    fontSize: 14,
+                    color: Colors.white,
+                  ),
+                ),
+                
+                if (promocao.validoAte != null) ...[  // CORRIGIDO: validoAte em vez de validadeAte
+                  const SizedBox(height: 8),
+                  Row(
+                    children: [
+                      const Icon(
+                        Icons.schedule,
+                        color: Colors.white70,
+                        size: 16,
+                      ),
+                      const SizedBox(width: 4),
+                      Text(
+                        'VÁLIDO ATÉ ${DateFormat('dd/MM/yy').format(promocao.validoAte!)}',  // CORRIGIDO: validoAte em vez de validadeAte
+                        style: const TextStyle(
+                          fontSize: 12,
+                          color: Colors.white70,
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildEmptyState() {
+    return Center(
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          const SizedBox(height: 60),
+          Icon(
+            Icons.notifications_none,
+            size: 80,
+            color: Colors.grey.shade400,
+          ),
+          const SizedBox(height: 16),
           Text(
-            promocao.descricao,
-            style: const TextStyle(
-              color: Color(0xFFFF8C00),
-              fontSize: 16,
+            'Nenhuma notificação',
+            style: TextStyle(
+              fontSize: 18,
+              color: Colors.grey.shade600,
               fontWeight: FontWeight.w500,
             ),
           ),
-          
-          const SizedBox(height: 16),
-          
-          if (promocao.validadeAte != null) ...[
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-              decoration: BoxDecoration(
-                color: Colors.white.withOpacity(0.1),
-                borderRadius: BorderRadius.circular(20),
-              ),
-              child: Text(
-                'VÁLIDO ATÉ ${DateFormat('dd/MM/yy').format(promocao.validadeAte!)}',
-                style: const TextStyle(
-                  color: Colors.white,
-                  fontSize: 14,
-                  fontWeight: FontWeight.w500,
-                ),
-              ),
+          const SizedBox(height: 8),
+          Text(
+            'Quando houver novidades, você será notificado aqui',
+            style: TextStyle(
+              fontSize: 14,
+              color: Colors.grey.shade500,
             ),
-          ] else ...[
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-              decoration: BoxDecoration(
-                color: Colors.white.withOpacity(0.1),
-                borderRadius: BorderRadius.circular(20),
-              ),
-              child: const Text(
-                'VÁLIDO ATÉ 05/05/25',
-                style: TextStyle(
-                  color: Colors.white,
-                  fontSize: 14,
-                  fontWeight: FontWeight.w500,
-                ),
-              ),
-            ),
-          ],
+            textAlign: TextAlign.center,
+          ),
         ],
       ),
     );
   }
 
-  Widget _buildNotificacaoCard(Notificacao notificacao) {
-    return GestureDetector(
-      onTap: () => _marcarComoLida(notificacao),
-      child: Container(
-        margin: const EdgeInsets.only(bottom: 20),
-        padding: const EdgeInsets.all(24),
-        decoration: BoxDecoration(
-          gradient: const LinearGradient(
-            colors: [Color(0xFF8B2F8B), Color(0xFF6A1B6A)],
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-          ),
-          borderRadius: BorderRadius.circular(20),
-          boxShadow: [
-            BoxShadow(
-              color: const Color(0xFF8B2F8B).withOpacity(0.3),
-              blurRadius: 20,
-              offset: const Offset(0, 10),
-            ),
-          ],
-        ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              notificacao.titulo,
-              style: const TextStyle(
-                color: Color(0xFFFF8C00),
-                fontSize: 20,
-                fontWeight: FontWeight.bold,
-              ),
-            ),
-            
-            const SizedBox(height: 16),
-            
-            Text(
-              notificacao.mensagem,
-              style: const TextStyle(
-                color: Colors.white,
-                fontSize: 16,
-                fontWeight: FontWeight.w300,
-                height: 1.5,
-              ),
-            ),
-            
-            if (notificacao.createdAt != null) ...[
-              const SizedBox(height: 16),
-              Text(
-                DateFormat('dd/MM/yyyy - HH:mm').format(notificacao.createdAt!),
-                style: TextStyle(
-                  color: Colors.white.withOpacity(0.7),
-                  fontSize: 12,
-                ),
-              ),
-            ],
-            
-            if (!notificacao.lida) ...[
-              const SizedBox(height: 12),
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
-                decoration: BoxDecoration(
-                  color: const Color(0xFFFF8C00).withOpacity(0.3),
-                  borderRadius: BorderRadius.circular(15),
-                ),
-                child: const Text(
-                  'NOVA',
-                  style: TextStyle(
-                    color: Color(0xFFFF8C00),
-                    fontSize: 10,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-              ),
-            ],
-          ],
-        ),
-      ),
-    );
+  Color _getNotificacaoColor(String tipo) {
+    switch (tipo) {
+      case 'evento':
+        return const Color(0xFF8B2F8B);
+      case 'promocao':
+        return const Color(0xFFFF8C00);
+      case 'lembrete':
+        return const Color(0xFF4CAF50);
+      case 'urgente':
+        return const Color(0xFFF44336);
+      default:
+        return const Color(0xFF2196F3);
+    }
+  }
+
+  IconData _getNotificacaoIcon(String tipo) {
+    switch (tipo) {
+      case 'evento':
+        return Icons.event;
+      case 'promocao':
+        return Icons.local_offer;
+      case 'lembrete':
+        return Icons.alarm;
+      case 'urgente':
+        return Icons.priority_high;
+      default:
+        return Icons.info;
+    }
   }
 }
 
+// Painter personalizado para o logo
 class PaintSplashPainter extends CustomPainter {
   @override
   void paint(Canvas canvas, Size size) {
-    // Manchas de tinta decorativas pequenas
-    final paint = Paint()..style = PaintingStyle.fill;
+    final paint = Paint()
+      ..style = PaintingStyle.fill;
 
-    canvas.drawCircle(
-      Offset(size.width * 0.2, size.height * 0.3),
-      4,
-      paint..color = const Color(0xFFFF1493).withOpacity(0.3),
+    // Splash rosa
+    paint.color = const Color(0xFFFF1493).withOpacity(0.1);
+    canvas.drawOval(
+      Rect.fromLTWH(0, 0, size.width * 0.6, size.height * 0.8),
+      paint,
     );
-    
-    canvas.drawCircle(
-      Offset(size.width * 0.8, size.height * 0.2),
-      3,
-      paint..color = const Color(0xFF00BFFF).withOpacity(0.3),
-    );
-    
-    canvas.drawCircle(
-      Offset(size.width * 0.1, size.height * 0.8),
-      2,
-      paint..color = const Color(0xFFFF1493).withOpacity(0.2),
-    );
-    
-    canvas.drawCircle(
-      Offset(size.width * 0.9, size.height * 0.7),
-      3,
-      paint..color = const Color(0xFF00BFFF).withOpacity(0.2),
+
+    // Splash azul
+    paint.color = const Color(0xFF00BFFF).withOpacity(0.1);
+    canvas.drawOval(
+      Rect.fromLTWH(size.width * 0.4, size.height * 0.2, size.width * 0.6, size.height * 0.8),
+      paint,
     );
   }
 

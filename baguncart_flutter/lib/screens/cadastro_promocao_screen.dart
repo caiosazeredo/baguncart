@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:intl/intl.dart';
 import '../models/models.dart';
 import '../services/firebase_service.dart';
 
@@ -31,7 +32,7 @@ class _CadastroPromocaoScreenState extends State<CadastroPromocaoScreen> {
     _tituloController = TextEditingController(text: widget.promocao?.titulo ?? '');
     _descricaoController = TextEditingController(text: widget.promocao?.descricao ?? '');
     _descontoController = TextEditingController(
-      text: widget.promocao?.desconto.toString() ?? ''
+      text: widget.promocao?.desconto?.toString() ?? ''
     );
     _tipoDesconto = widget.promocao?.tipo ?? 'percentual';
     _ativo = widget.promocao?.ativo ?? true;
@@ -93,16 +94,16 @@ class _CadastroPromocaoScreenState extends State<CadastroPromocaoScreen> {
       firstDate: dataAtual,
       lastDate: dataMaxima,
       locale: const Locale('pt', 'BR'),
-      helpText: 'Selecionar data de validade',
-      cancelText: 'Cancelar',
-      confirmText: 'Confirmar',
     );
-
+    
     if (dataSelecionada != null) {
-      setState(() {
-        _validoAte = dataSelecionada;
-      });
+      setState(() => _validoAte = dataSelecionada);
     }
+  }
+
+  String _formatarDataValidade() {
+    if (_validoAte == null) return 'Selecionar data (opcional)';
+    return 'Válida até: ${DateFormat('dd/MM/yyyy').format(_validoAte!)}';
   }
 
   Future<void> _salvarPromocao() async {
@@ -117,14 +118,15 @@ class _CadastroPromocaoScreenState extends State<CadastroPromocaoScreen> {
         id: widget.promocao?.id,
         titulo: _tituloController.text.trim(),
         descricao: _descricaoController.text.trim(),
-        desconto: desconto,
         tipo: _tipoDesconto,
+        desconto: desconto,
         validoAte: _validoAte,
         ativo: _ativo,
+        createdAt: widget.promocao?.createdAt,
       );
 
-      bool sucesso;
-      if (_isEditing) {
+      bool sucesso = false;
+      if (_isEditing && widget.promocao?.id != null) {
         sucesso = await _firebaseService.updatePromocao(widget.promocao!.id!, promocao);
       } else {
         final id = await _firebaseService.insertPromocao(promocao);
@@ -137,7 +139,8 @@ class _CadastroPromocaoScreenState extends State<CadastroPromocaoScreen> {
             SnackBar(
               content: Text(_isEditing 
                 ? 'Promoção atualizada com sucesso!'
-                : 'Promoção criada com sucesso!'),
+                : 'Promoção criada com sucesso!'
+              ),
               backgroundColor: Colors.green,
             ),
           );
@@ -147,7 +150,8 @@ class _CadastroPromocaoScreenState extends State<CadastroPromocaoScreen> {
             SnackBar(
               content: Text(_isEditing 
                 ? 'Erro ao atualizar promoção'
-                : 'Erro ao criar promoção'),
+                : 'Erro ao criar promoção'
+              ),
               backgroundColor: Colors.red,
             ),
           );
@@ -168,71 +172,45 @@ class _CadastroPromocaoScreenState extends State<CadastroPromocaoScreen> {
   }
 
   Future<void> _confirmarExclusao() async {
-    final resultado = await showDialog<bool>(
+    final confirmacao = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
         title: const Text('Confirmar Exclusão'),
-        content: Text('Deseja realmente excluir a promoção "${widget.promocao!.titulo}"?'),
+        content: Text('Tem certeza que deseja excluir a promoção "${widget.promocao?.titulo}"?'),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context, false),
             child: const Text('Cancelar'),
           ),
-          TextButton(
+          ElevatedButton(
             onPressed: () => Navigator.pop(context, true),
-            style: TextButton.styleFrom(foregroundColor: Colors.red),
+            style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
             child: const Text('Excluir'),
           ),
         ],
       ),
     );
 
-    if (resultado == true) {
-      await _excluirPromocao();
-    }
-  }
-
-  Future<void> _excluirPromocao() async {
-    setState(() => _isLoading = true);
-
-    try {
+    if (confirmacao == true && widget.promocao?.id != null) {
+      setState(() => _isLoading = true);
       final sucesso = await _firebaseService.deletePromocao(widget.promocao!.id!);
-      
-      if (mounted) {
-        if (sucesso) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('Promoção excluída com sucesso!'),
-              backgroundColor: Colors.green,
-            ),
-          );
-          Navigator.pop(context, true);
-        } else {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('Erro ao excluir promoção'),
-              backgroundColor: Colors.red,
-            ),
-          );
-        }
-      }
-    } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Erro: $e'),
-            backgroundColor: Colors.red,
+            content: Text(sucesso 
+              ? 'Promoção excluída com sucesso!'
+              : 'Erro ao excluir promoção'
+            ),
+            backgroundColor: sucesso ? Colors.green : Colors.red,
           ),
         );
+        if (sucesso) {
+          Navigator.pop(context, true);
+        } else {
+          setState(() => _isLoading = false);
+        }
       }
-    } finally {
-      if (mounted) setState(() => _isLoading = false);
     }
-  }
-
-  String _formatarDataValidade() {
-    if (_validoAte == null) return 'Sem data limite';
-    return '${_validoAte!.day}/${_validoAte!.month}/${_validoAte!.year}';
   }
 
   @override

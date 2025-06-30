@@ -59,10 +59,12 @@ class _PromocoesScreenState extends State<PromocoesScreen> {
   }
 
   String _formatarDesconto(Promocao promocao) {
+    if (promocao.desconto == null) return 'Sem desconto';
+    
     if (promocao.tipo == 'percentual') {
-      return '${promocao.desconto.toStringAsFixed(0)}% OFF';
+      return '${promocao.desconto!.toStringAsFixed(0)}% OFF';
     } else {
-      return 'R\$ ${promocao.desconto.toStringAsFixed(2)} OFF';
+      return 'R\$ ${promocao.desconto!.toStringAsFixed(2)} OFF';
     }
   }
 
@@ -101,105 +103,174 @@ class _PromocoesScreenState extends State<PromocoesScreen> {
       body: _isLoading
           ? const Center(child: CircularProgressIndicator())
           : _promocoes.isEmpty
-              ? const Center(
+              ? Center(
                   child: Column(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-                      Icon(Icons.local_offer_outlined, size: 64, color: Colors.grey),
-                      SizedBox(height: 16),
-                      Text('Nenhuma promoção encontrada', style: TextStyle(fontSize: 18, color: Colors.grey)),
-                      SizedBox(height: 8),
-                      Text('Crie promoções para atrair mais clientes!', style: TextStyle(fontSize: 14, color: Colors.grey)),
+                      Icon(
+                        Icons.local_offer_outlined,
+                        size: 64,
+                        color: Colors.grey.shade400,
+                      ),
+                      const SizedBox(height: 16),
+                      Text(
+                        'Nenhuma promoção cadastrada',
+                        style: TextStyle(
+                          fontSize: 18,
+                          color: Colors.grey.shade600,
+                        ),
+                      ),
+                      const SizedBox(height: 16),
+                      ElevatedButton.icon(
+                        onPressed: _adicionarPromocao,
+                        icon: const Icon(Icons.add),
+                        label: const Text('Criar Primeira Promoção'),
+                      ),
                     ],
                   ),
                 )
-              : ListView.builder(
-                  padding: const EdgeInsets.all(16),
-                  itemCount: _promocoes.length,
-                  itemBuilder: (context, index) {
-                    final promocao = _promocoes[index];
-                    return Card(
-                      margin: const EdgeInsets.only(bottom: 12),
-                      child: ListTile(
-                        contentPadding: const EdgeInsets.all(16),
-                        leading: CircleAvatar(
-                          backgroundColor: _getStatusColor(promocao),
-                          child: const Icon(Icons.local_offer, color: Colors.white),
+              : RefreshIndicator(
+                  onRefresh: _loadPromocoes,
+                  child: ListView.builder(
+                    itemCount: _promocoes.length,
+                    itemBuilder: (context, index) {
+                      final promocao = _promocoes[index];
+                      return Card(
+                        margin: const EdgeInsets.symmetric(
+                          horizontal: 16,
+                          vertical: 8,
                         ),
-                        title: Text(
-                          promocao.titulo,
-                          style: const TextStyle(fontWeight: FontWeight.bold),
-                        ),
-                        subtitle: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            const SizedBox(height: 4),
-                            Text(
-                              promocao.descricao,
-                              maxLines: 2,
-                              overflow: TextOverflow.ellipsis,
+                        child: ListTile(
+                          leading: CircleAvatar(
+                            backgroundColor: _getStatusColor(promocao),
+                            child: Icon(
+                              Icons.local_offer,
+                              color: Colors.white,
+                              size: 20,
                             ),
-                            const SizedBox(height: 8),
-                            Row(
-                              children: [
-                                Container(
-                                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                                  decoration: BoxDecoration(
-                                    color: const Color(0xFFFF8C00),
-                                    borderRadius: BorderRadius.circular(12),
-                                  ),
-                                  child: Text(
-                                    _formatarDesconto(promocao),
-                                    style: const TextStyle(
-                                      color: Colors.white,
-                                      fontSize: 12,
-                                      fontWeight: FontWeight.bold,
+                          ),
+                          title: Text(
+                            promocao.titulo,
+                            style: const TextStyle(
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                          subtitle: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                promocao.descricao,
+                                maxLines: 2,
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                              const SizedBox(height: 4),
+                              Row(
+                                children: [
+                                  Container(
+                                    padding: const EdgeInsets.symmetric(
+                                      horizontal: 8,
+                                      vertical: 2,
+                                    ),
+                                    decoration: BoxDecoration(
+                                      color: promocao.tipo == 'percentual'
+                                          ? Colors.orange.shade100
+                                          : Colors.green.shade100,
+                                      borderRadius: BorderRadius.circular(12),
+                                    ),
+                                    child: Text(
+                                      _formatarDesconto(promocao),
+                                      style: TextStyle(
+                                        fontSize: 12,
+                                        fontWeight: FontWeight.bold,
+                                        color: promocao.tipo == 'percentual'
+                                            ? Colors.orange.shade700
+                                            : Colors.green.shade700,
+                                      ),
                                     ),
                                   ),
-                                ),
-                                const SizedBox(width: 8),
-                                Text(
-                                  _formatarValidadeText(promocao.validoAte),
-                                  style: TextStyle(
-                                    fontSize: 12,
-                                    color: _getStatusColor(promocao),
-                                    fontWeight: FontWeight.w500,
+                                  const SizedBox(width: 8),
+                                  Text(
+                                    _formatarValidadeText(promocao.validoAte),
+                                    style: TextStyle(
+                                      fontSize: 12,
+                                      color: promocao.validoAte != null &&
+                                              promocao.validoAte!.isBefore(DateTime.now())
+                                          ? Colors.red
+                                          : Colors.grey.shade600,
+                                    ),
                                   ),
+                                ],
+                              ),
+                            ],
+                          ),
+                          trailing: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              IconButton(
+                                icon: const Icon(
+                                  Icons.edit,
+                                  color: Color(0xFFFF8C00),
                                 ),
-                              ],
-                            ),
-                          ],
-                        ),
-                        trailing: Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            Container(
-                              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                              decoration: BoxDecoration(
-                                color: _getStatusColor(promocao),
-                                borderRadius: BorderRadius.circular(8),
+                                onPressed: () => _editarPromocao(promocao),
+                                tooltip: 'Editar promoção',
                               ),
-                              child: Text(
-                                promocao.ativo ? 'ATIVA' : 'INATIVA',
-                                style: const TextStyle(color: Colors.white, fontSize: 12),
+                              IconButton(
+                                icon: const Icon(
+                                  Icons.delete,
+                                  color: Colors.red,
+                                ),
+                                onPressed: () => _confirmarExclusao(promocao),
+                                tooltip: 'Excluir promoção',
                               ),
-                            ),
-                            IconButton(
-                              icon: const Icon(Icons.edit, color: Color(0xFF8B2F8B)),
-                              onPressed: () => _editarPromocao(promocao),
-                            ),
-                          ],
+                            ],
+                          ),
+                          onTap: () => _editarPromocao(promocao),
                         ),
-                      ),
-                    );
-                  },
+                      );
+                    },
+                  ),
                 ),
-      floatingActionButton: FloatingActionButton.extended(
-        backgroundColor: const Color(0xFFFF8C00),
+      floatingActionButton: FloatingActionButton(
         onPressed: _adicionarPromocao,
-        icon: const Icon(Icons.add, color: Colors.white),
-        label: const Text('Nova Promoção', style: TextStyle(color: Colors.white)),
+        child: const Icon(Icons.add),
       ),
     );
+  }
+
+  Future<void> _confirmarExclusao(Promocao promocao) async {
+    final confirmacao = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Confirmar Exclusão'),
+        content: Text('Tem certeza que deseja excluir a promoção "${promocao.titulo}"?'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('Cancelar'),
+          ),
+          ElevatedButton(
+            onPressed: () => Navigator.pop(context, true),
+            style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
+            child: const Text('Excluir'),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmacao == true && promocao.id != null) {
+      final sucesso = await _firebaseService.deletePromocao(promocao.id!);
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(sucesso 
+              ? 'Promoção excluída com sucesso!'
+              : 'Erro ao excluir promoção'
+            ),
+            backgroundColor: sucesso ? Colors.green : Colors.red,
+          ),
+        );
+        if (sucesso) _loadPromocoes();
+      }
+    }
   }
 }
