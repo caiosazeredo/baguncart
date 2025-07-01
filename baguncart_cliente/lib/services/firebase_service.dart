@@ -22,7 +22,7 @@ class FirebaseService {
   // Login simplificado (sem Firebase Auth)
   Future<bool> loginCliente(String cpf, String senha) async {
     try {
-      // ✅ CORREÇÃO: Remover formatação do CPF antes de buscar
+      // Remove formatação do CPF antes de buscar
       final cpfLimpo = cpf.replaceAll(RegExp(r'[^0-9]'), '');
       print('🔍 DEBUG: Iniciando login com CPF: $cpf');
       print('🔍 DEBUG: CPF limpo para busca: $cpfLimpo');
@@ -78,11 +78,10 @@ class FirebaseService {
     _clienteLogado = null;
   }
 
-  // BUSCAR CONTRATOS - FUNCIONANDO PERFEITAMENTE
+  // BUSCAR CONTRATOS - APENAS DADOS REAIS
   Future<List<Contrato>> getContratosCliente() async {
     print('\n🔍 DEBUG: ===== INICIANDO BUSCA DE CONTRATOS =====');
     
-    // VERIFICAÇÃO DE SEGURANÇA: Cliente deve estar logado
     if (_clienteLogado?.id == null) {
       print('❌ DEBUG: Cliente não está logado!');
       return [];
@@ -108,7 +107,7 @@ class FirebaseService {
 
       if (query.docs.isEmpty) {
         print('⚠️ DEBUG: Nenhum contrato encontrado para este cliente');
-        return [];
+        return []; // ✅ RETORNA LISTA VAZIA EM VEZ DE MOCK
       }
 
       final contratos = <Contrato>[];
@@ -131,10 +130,10 @@ class FirebaseService {
         print('     Data Evento: ${contrato.dataEvento}');
         print('     Valor: ${contrato.valorTotal}');
         
-        // VERIFICAÇÃO ADICIONAL DE SEGURANÇA
+        // Verificação de segurança
         if (contrato.clienteId != _clienteLogado!.id) {
           print('⚠️ DEBUG: Cliente ID não confere!');
-          continue; // Pula este contrato
+          continue;
         }
         
         print('✅ DEBUG: Contrato validado - pertence ao cliente logado');
@@ -145,9 +144,8 @@ class FirebaseService {
           print('   IDs dos serviços: ${contrato.servicosIds}');
           final servicos = await _getServicosByIds(contrato.servicosIds!);
           print('✅ DEBUG: ${servicos.length} serviços carregados');
-          print('   Serviços encontrados: ${servicos.length}');
           
-          // Criar contrato com serviços - USANDO APENAS CAMPOS QUE EXISTEM
+          // Criar contrato com serviços
           final contratoComServicos = Contrato(
             id: contrato.id,
             numero: contrato.numero,
@@ -159,7 +157,7 @@ class FirebaseService {
             status: contrato.status,
             formaPagamento: contrato.formaPagamento,
             servicosIds: contrato.servicosIds,
-            servicos: servicos, // SERVIÇOS CARREGADOS
+            servicos: servicos,
             createdAt: contrato.createdAt,
           );
           
@@ -176,7 +174,7 @@ class FirebaseService {
       return contratos;
     } catch (e) {
       print('❌ DEBUG: Erro ao buscar contratos: $e');
-      return [];
+      return []; // ✅ RETORNA LISTA VAZIA EM VEZ DE MOCK
     }
   }
 
@@ -211,7 +209,7 @@ class FirebaseService {
     }
   }
 
-  // PROMOÇÕES ATIVAS
+  // PROMOÇÕES ATIVAS - APENAS DADOS REAIS
   Future<List<Promocao>> getPromocoesAtivas() async {
     try {
       print('🔍 DEBUG: Buscando promoções ativas...');
@@ -237,42 +235,24 @@ class FirebaseService {
       print('✅ DEBUG: Query de promoções executada - ${query.docs.length} encontradas');
       print('✅ DEBUG: ${promocoes.length} promoções válidas encontradas');
       
-      // Se não houver promoções reais, retornar mock para demonstração
-      if (promocoes.isEmpty) {
-        return _getPromocoesMock();
-      }
-      
-      return promocoes;
+      return promocoes; // ✅ RETORNA LISTA REAL (PODE SER VAZIA)
     } catch (e) {
       print('❌ DEBUG: Erro ao buscar promoções: $e');
-      return _getPromocoesMock();
+      return []; // ✅ RETORNA LISTA VAZIA EM VEZ DE MOCK
     }
   }
 
-  List<Promocao> _getPromocoesMock() {
-    return [
-      const Promocao(
-        id: 'promo_mock_1',
-        titulo: 'DESCONTÃO DE VERÃO',
-        descricao: 'Kit completo pula pula + pipoca + algodão doce por apenas R\$ 150,00. Economia de R\$ 50,00!',
-        tipo: 'valor',
-        desconto: 50.00,
-        ativo: true,
-      ),
-    ];
-  }
-
-  // ===== NOTIFICAÇÕES CORRIGIDAS =====
+  // NOTIFICAÇÕES - APENAS DADOS REAIS
   Future<List<Notificacao>> getNotificacoesCliente() async {
     if (_clienteLogado?.id == null) {
       print('❌ DEBUG: Cliente não logado para buscar notificações');
-      return _getNotificacoesMock(); // Retorna dados de exemplo
+      return []; // ✅ RETORNA LISTA VAZIA EM VEZ DE MOCK
     }
 
     try {
       print('🔍 DEBUG: Buscando notificações para cliente: ${_clienteLogado!.id}');
       
-      // Query simplificada - apenas por cliente_id (sem orderBy para evitar problemas de índice)
+      // Query simplificada - apenas por cliente_id
       final query = await _firestore
           .collection(_notificacoesCollection)
           .where('cliente_id', isEqualTo: _clienteLogado!.id)
@@ -305,23 +285,17 @@ class FirebaseService {
 
       print('✅ DEBUG: ${notificacoes.length} notificações processadas');
       
-      // Se não houver notificações reais, retornar dados mock para demonstração
-      if (notificacoes.isEmpty) {
-        print('⚠️ DEBUG: Nenhuma notificação real encontrada, usando dados mock');
-        return _getNotificacoesMock();
-      }
-      
-      return notificacoes;
+      return notificacoes; // ✅ RETORNA LISTA REAL (PODE SER VAZIA)
     } catch (e) {
       print('❌ DEBUG: Erro ao buscar notificações: $e');
-      return _getNotificacoesMock(); // Fallback para dados mock
+      return []; // ✅ RETORNA LISTA VAZIA EM VEZ DE MOCK
     }
   }
 
-  // NOVO: Método para contar notificações não lidas
+  // Método para contar notificações não lidas - APENAS DADOS REAIS
   Future<int> getNotificacoesNaoLidasCount() async {
     if (_clienteLogado?.id == null) {
-      return 2; // Mock: simula 2 notificações não lidas
+      return 0; // ✅ RETORNA 0 EM VEZ DE MOCK
     }
 
     try {
@@ -334,15 +308,14 @@ class FirebaseService {
       final count = query.docs.length;
       print('🔔 DEBUG: Notificações não lidas: $count');
       
-      // Se não houver notificações reais, simular algumas para demonstração
-      return count > 0 ? count : 2;
+      return count; // ✅ RETORNA CONTAGEM REAL
     } catch (e) {
       print('❌ DEBUG: Erro ao contar notificações não lidas: $e');
-      return 2; // Mock fallback
+      return 0; // ✅ RETORNA 0 EM VEZ DE MOCK
     }
   }
 
-  // NOVO: Método para contar promoções ativas
+  // Método para contar promoções ativas - APENAS DADOS REAIS
   Future<int> getPromocoesAtivasCount() async {
     try {
       final query = await _firestore
@@ -360,41 +333,11 @@ class FirebaseService {
       }
 
       print('🎁 DEBUG: Promoções ativas: $count');
-      return count > 0 ? count : 1; // Sempre mostrar pelo menos 1 para demonstração
+      return count; // ✅ RETORNA CONTAGEM REAL
     } catch (e) {
       print('❌ DEBUG: Erro ao contar promoções: $e');
-      return 1; // Mock fallback
+      return 0; // ✅ RETORNA 0 EM VEZ DE MOCK
     }
-  }
-
-  // Dados mock para demonstração
-  List<Notificacao> _getNotificacoesMock() {
-    return [
-      Notificacao(
-        id: 'mock_1',
-        tipo: 'evento',
-        titulo: 'FALTAM SÓ 9 DIAS!',
-        mensagem: 'Seu evento está chegando! Lembre-se de confirmar os detalhes finais conosco.',
-        lida: false,
-        createdAt: DateTime.now().subtract(const Duration(hours: 2)),
-      ),
-      Notificacao(
-        id: 'mock_2',
-        tipo: 'pagamento',
-        titulo: 'Pagamento Confirmado',
-        mensagem: 'Recebemos o pagamento da segunda parcela do seu contrato. Obrigado!',
-        lida: false,
-        createdAt: DateTime.now().subtract(const Duration(days: 1)),
-      ),
-      Notificacao(
-        id: 'mock_3',
-        tipo: 'info',
-        titulo: 'Dicas para o seu evento',
-        mensagem: 'Confira nossas dicas especiais para tornar o seu evento ainda mais incrível!',
-        lida: true,
-        createdAt: DateTime.now().subtract(const Duration(days: 3)),
-      ),
-    ];
   }
 
   Future<void> marcarNotificacaoLida(String notificacaoId) async {
