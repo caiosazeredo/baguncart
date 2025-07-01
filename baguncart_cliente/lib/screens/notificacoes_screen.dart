@@ -15,54 +15,29 @@ class NotificacoesScreen extends StatefulWidget {
 class _NotificacoesScreenState extends State<NotificacoesScreen> {
   final FirebaseService _firebaseService = FirebaseService();
   List<Notificacao> _notificacoes = [];
-  List<Promocao> _promocoes = [];
   bool _isLoading = true;
 
   @override
   void initState() {
     super.initState();
-    _loadData();
+    _loadNotificacoes();
   }
 
-  Future<void> _loadData() async {
+  Future<void> _loadNotificacoes() async {
     setState(() => _isLoading = true);
     
     try {
-      final notificacoesFuture = _firebaseService.getNotificacoesCliente();
-      final promocoesFuture = _firebaseService.getPromocoesAtivas();
-      
-      final results = await Future.wait([notificacoesFuture, promocoesFuture]);
-      
+      final notificacoes = await _firebaseService.getNotificacoesCliente();
       if (mounted) {
         setState(() {
-          _notificacoes = results[0] as List<Notificacao>;
-          _promocoes = results[1] as List<Promocao>;
+          _notificacoes = notificacoes;
           _isLoading = false;
         });
       }
     } catch (e) {
+      print('❌ DEBUG: Erro ao carregar notificações: $e');
       if (mounted) {
         setState(() => _isLoading = false);
-        
-        // Para demonstração, adicionar dados mock
-        _promocoes = [
-          const Promocao(
-            id: 'mock1',
-            titulo: 'PROMOÇÃO RELÂMPAGO',
-            descricao: 'Kit pula pula + pipoca: R\$20,00',
-            desconto: 20.00,
-            validoAte: null, // CORRIGIDO: validoAte em vez de validadeAte
-          ),
-        ];
-        
-        _notificacoes = [
-          const Notificacao(
-            id: 'mock1',
-            tipo: 'evento',
-            titulo: 'FALTAM SÓ 15 DIAS',
-            mensagem: 'Seu evento está prestes a acontecer!\nQualquer ajuda que precisar, entre em contato conosco.',
-          ),
-        ];
       }
     }
   }
@@ -90,160 +65,156 @@ class _NotificacoesScreenState extends State<NotificacoesScreen> {
   Future<void> _marcarComoLida(Notificacao notificacao) async {
     if (notificacao.id != null && !notificacao.lida) {
       await _firebaseService.marcarNotificacaoLida(notificacao.id!);
-      _loadData(); // Recarregar para atualizar o status
+      
+      // Atualizar localmente
+      setState(() {
+        final index = _notificacoes.indexWhere((n) => n.id == notificacao.id);
+        if (index != -1) {
+          _notificacoes[index] = Notificacao(
+            id: notificacao.id,
+            tipo: notificacao.tipo,
+            titulo: notificacao.titulo,
+            mensagem: notificacao.mensagem,
+            lida: true,
+            createdAt: notificacao.createdAt,
+          );
+        }
+      });
+    }
+  }
+
+  Future<void> _marcarTodasComoLidas() async {
+    // Mostrar loading
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) => const Center(
+        child: CircularProgressIndicator(color: Color(0xFFFF8C00)),
+      ),
+    );
+
+    try {
+      // Marcar todas as não lidas como lidas
+      for (final notif in _notificacoes.where((n) => !n.lida)) {
+        if (notif.id != null) {
+          await _firebaseService.marcarNotificacaoLida(notif.id!);
+        }
+      }
+      
+      // Fechar loading
+      if (mounted) Navigator.of(context).pop();
+      
+      // Recarregar notificações
+      await _loadNotificacoes();
+      
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Todas as notificações foram marcadas como lidas'),
+            backgroundColor: Color(0xFFFF8C00),
+          ),
+        );
+      }
+    } catch (e) {
+      // Fechar loading
+      if (mounted) Navigator.of(context).pop();
+      
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Erro ao marcar notificações como lidas'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
     }
   }
 
   @override
   Widget build(BuildContext context) {
+    final notificacoesNaoLidas = _notificacoes.where((n) => !n.lida).length;
+    
     return Scaffold(
-      body: Container(
-        decoration: const BoxDecoration(
-          color: Color(0xFFF8F9FA),
-        ),
-        child: SafeArea(
-          child: Column(
-            children: [
-              const SizedBox(height: 20),
-              
-              // Header com logo e botão voltar
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 24),
-                child: Row(
-                  children: [
-                    IconButton(
-                      onPressed: () => Navigator.pop(context),
-                      icon: const Icon(
-                        Icons.arrow_back,
-                        color: Color(0xFF8B2F8B),
-                      ),
-                    ),
-                    
-                    const SizedBox(width: 16),
-                    
-                    // Logo BagunçArt
-                    Container(
-                      width: 120,
-                      height: 50,
-                      child: Stack(
-                        children: [
-                          Positioned.fill(
-                            child: CustomPaint(
-                              painter: PaintSplashPainter(),
-                            ),
-                          ),
-                          Center(
-                            child: RichText(
-                              textAlign: TextAlign.center,
-                              text: const TextSpan(
-                                children: [
-                                  TextSpan(
-                                    text: 'Bagunç',
-                                    style: TextStyle(
-                                      fontSize: 16,
-                                      fontWeight: FontWeight.bold,
-                                      color: Color(0xFFFF1493),
-                                      fontFamily: 'Arial',
-                                    ),
-                                  ),
-                                  TextSpan(
-                                    text: 'Art',
-                                    style: TextStyle(
-                                      fontSize: 16,
-                                      fontWeight: FontWeight.bold,
-                                      color: Color(0xFF00BFFF),
-                                      fontFamily: 'Arial',
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ],
+      appBar: AppBar(
+        title: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text(
+              'Notificações',
+              style: TextStyle(
+                fontWeight: FontWeight.bold,
+                fontSize: 20,
+              ),
+            ),
+            if (notificacoesNaoLidas > 0)
+              Text(
+                '$notificacoesNaoLidas não lida${notificacoesNaoLidas > 1 ? 's' : ''}',
+                style: const TextStyle(
+                  fontSize: 12,
+                  color: Colors.white70,
                 ),
               ),
-              
-              const SizedBox(height: 30),
-              
-              // Conteúdo
-              Expanded(
-                child: _isLoading
-                    ? const Center(
-                        child: CircularProgressIndicator(
-                          color: Color(0xFF8B2F8B),
-                        ),
-                      )
-                    : SingleChildScrollView(
-                        padding: const EdgeInsets.symmetric(horizontal: 24),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            // Título
-                            const Text(
-                              'NOTIFICAÇÕES',
-                              style: TextStyle(
-                                fontSize: 24,
-                                fontWeight: FontWeight.bold,
-                                color: Color(0xFF8B2F8B),
-                              ),
-                            ),
-                            
-                            const SizedBox(height: 20),
-                            
-                            // Notificações
-                            if (_notificacoes.isNotEmpty) ...[
-                              const Text(
-                                'Recentes',
-                                style: TextStyle(
-                                  fontSize: 18,
-                                  fontWeight: FontWeight.bold,
-                                  color: Colors.black87,
-                                ),
-                              ),
-                              const SizedBox(height: 12),
-                              
-                              ...(_notificacoes.map((notificacao) => 
-                                _buildNotificacaoCard(notificacao)
-                              )),
-                              
-                              const SizedBox(height: 20),
-                            ],
-                            
-                            // Promoções
-                            if (_promocoes.isNotEmpty) ...[
-                              const Text(
-                                'Promoções Ativas',
-                                style: TextStyle(
-                                  fontSize: 18,
-                                  fontWeight: FontWeight.bold,
-                                  color: Colors.black87,
-                                ),
-                              ),
-                              const SizedBox(height: 12),
-                              
-                              ...(_promocoes.map((promocao) => 
-                                _buildPromocaoCard(promocao)
-                              )),
-                            ],
-                            
-                            // Caso não haja notificações
-                            if (_notificacoes.isEmpty && _promocoes.isEmpty)
-                              _buildEmptyState(),
-                            
-                            const SizedBox(height: 100), // Espaço para o bottom nav
-                          ],
-                        ),
-                      ),
+          ],
+        ),
+        backgroundColor: const Color(0xFFFF8C00),
+        foregroundColor: Colors.white,
+        elevation: 0,
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back),
+          onPressed: () => Navigator.pushReplacement(
+            context,
+            MaterialPageRoute(builder: (_) => const HomeScreen()),
+          ),
+        ),
+        actions: [
+          if (notificacoesNaoLidas > 0)
+            TextButton.icon(
+              onPressed: _marcarTodasComoLidas,
+              icon: const Icon(
+                Icons.done_all,
+                color: Colors.white,
+                size: 20,
               ),
+              label: const Text(
+                'Marcar todas',
+                style: TextStyle(
+                  color: Colors.white,
+                  fontSize: 12,
+                ),
+              ),
+            ),
+          IconButton(
+            icon: const Icon(Icons.refresh),
+            onPressed: _loadNotificacoes,
+          ),
+        ],
+      ),
+      body: Container(
+        decoration: const BoxDecoration(
+          gradient: LinearGradient(
+            begin: Alignment.topCenter,
+            end: Alignment.bottomCenter,
+            colors: [
+              Color(0xFFFF8C00),
+              Color(0xFFE65100),
             ],
           ),
         ),
+        child: _isLoading
+          ? const Center(child: CircularProgressIndicator(color: Colors.white))
+          : _notificacoes.isEmpty
+            ? _buildEmptyState()
+            : RefreshIndicator(
+                onRefresh: _loadNotificacoes,
+                child: ListView.builder(
+                  padding: const EdgeInsets.all(24),
+                  itemCount: _notificacoes.length,
+                  itemBuilder: (context, index) {
+                    return _buildNotificacaoCard(_notificacoes[index]);
+                  },
+                ),
+              ),
       ),
-      
-      // Bottom Navigation
       bottomNavigationBar: Container(
         decoration: BoxDecoration(
           color: Colors.white,
@@ -261,7 +232,7 @@ class _NotificacoesScreenState extends State<NotificacoesScreen> {
           type: BottomNavigationBarType.fixed,
           backgroundColor: Colors.transparent,
           elevation: 0,
-          selectedItemColor: const Color(0xFF8B2F8B),
+          selectedItemColor: const Color(0xFFFF8C00),
           unselectedItemColor: Colors.grey,
           items: const [
             BottomNavigationBarItem(
@@ -282,209 +253,229 @@ class _NotificacoesScreenState extends State<NotificacoesScreen> {
     );
   }
 
-  Widget _buildNotificacaoCard(Notificacao notificacao) {
-    return Container(
-      margin: const EdgeInsets.only(bottom: 12),
-      child: Card(
-        elevation: 3,
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(12),
-        ),
-        child: InkWell(
-          onTap: () => _marcarComoLida(notificacao),
-          borderRadius: BorderRadius.circular(12),
-          child: Padding(
-            padding: const EdgeInsets.all(16),
-            child: Row(
-              children: [
-                // Ícone
-                Container(
-                  width: 50,
-                  height: 50,
-                  decoration: BoxDecoration(
-                    color: _getNotificacaoColor(notificacao.tipo),
-                    borderRadius: BorderRadius.circular(25),
-                  ),
-                  child: Icon(
-                    _getNotificacaoIcon(notificacao.tipo),
-                    color: Colors.white,
-                    size: 24,
-                  ),
-                ),
-                
-                const SizedBox(width: 16),
-                
-                // Conteúdo
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        notificacao.titulo,
-                        style: TextStyle(
-                          fontSize: 16,
-                          fontWeight: FontWeight.bold,
-                          color: notificacao.lida ? Colors.grey : Colors.black87,
-                        ),
-                      ),
-                      const SizedBox(height: 4),
-                      Text(
-                        notificacao.mensagem,
-                        style: TextStyle(
-                          fontSize: 14,
-                          color: notificacao.lida ? Colors.grey : Colors.black54,
-                        ),
-                        maxLines: 3,
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                    ],
-                  ),
-                ),
-                
-                // Indicador não lida
-                if (!notificacao.lida)
-                  Container(
-                    width: 8,
-                    height: 8,
-                    decoration: const BoxDecoration(
-                      color: Color(0xFFFF8C00),
-                      shape: BoxShape.circle,
-                    ),
-                  ),
-              ],
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-
-  Widget _buildPromocaoCard(Promocao promocao) {
-    return Container(
-      margin: const EdgeInsets.only(bottom: 12),
-      child: Card(
-        elevation: 3,
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(12),
-        ),
-        child: Container(
-          decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(12),
-            gradient: const LinearGradient(
-              colors: [Color(0xFFFF8C00), Color(0xFFFF6B35)],
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
-            ),
-          ),
-          child: Padding(
-            padding: const EdgeInsets.all(16),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
-                  children: [
-                    const Icon(
-                      Icons.local_offer,
-                      color: Colors.white,
-                      size: 24,
-                    ),
-                    const SizedBox(width: 8),
-                    Text(
-                      promocao.titulo,
-                      style: const TextStyle(
-                        fontSize: 18,
-                        fontWeight: FontWeight.bold,
-                        color: Colors.white,
-                      ),
-                    ),
-                  ],
-                ),
-                
-                const SizedBox(height: 8),
-                
-                Text(
-                  promocao.descricao,
-                  style: const TextStyle(
-                    fontSize: 14,
-                    color: Colors.white,
-                  ),
-                ),
-                
-                if (promocao.validoAte != null) ...[  // CORRIGIDO: validoAte em vez de validadeAte
-                  const SizedBox(height: 8),
-                  Row(
-                    children: [
-                      const Icon(
-                        Icons.schedule,
-                        color: Colors.white70,
-                        size: 16,
-                      ),
-                      const SizedBox(width: 4),
-                      Text(
-                        'VÁLIDO ATÉ ${DateFormat('dd/MM/yy').format(promocao.validoAte!)}',  // CORRIGIDO: validoAte em vez de validadeAte
-                        style: const TextStyle(
-                          fontSize: 12,
-                          color: Colors.white70,
-                          fontWeight: FontWeight.w500,
-                        ),
-                      ),
-                    ],
-                  ),
-                ],
-              ],
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-
   Widget _buildEmptyState() {
-    return Center(
+    return const Center(
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          const SizedBox(height: 60),
           Icon(
-            Icons.notifications_none,
+            Icons.notifications_off,
             size: 80,
-            color: Colors.grey.shade400,
+            color: Colors.white70,
           ),
-          const SizedBox(height: 16),
+          SizedBox(height: 16),
           Text(
             'Nenhuma notificação',
             style: TextStyle(
-              fontSize: 18,
-              color: Colors.grey.shade600,
-              fontWeight: FontWeight.w500,
+              color: Colors.white70,
+              fontSize: 20,
+              fontWeight: FontWeight.bold,
             ),
           ),
-          const SizedBox(height: 8),
+          SizedBox(height: 8),
           Text(
-            'Quando houver novidades, você será notificado aqui',
-            style: TextStyle(
-              fontSize: 14,
-              color: Colors.grey.shade500,
-            ),
+            'Você está em dia!\nQuando houver novidades,\nelas aparecerão aqui.',
             textAlign: TextAlign.center,
+            style: TextStyle(
+              color: Colors.white54,
+              fontSize: 16,
+            ),
           ),
         ],
       ),
     );
   }
 
+  Widget _buildNotificacaoCard(Notificacao notificacao) {
+    return GestureDetector(
+      onTap: () => _marcarComoLida(notificacao),
+      child: Container(
+        margin: const EdgeInsets.only(bottom: 16),
+        decoration: BoxDecoration(
+          color: notificacao.lida 
+            ? Colors.white.withOpacity(0.85)
+            : Colors.white,
+          borderRadius: BorderRadius.circular(16),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withOpacity(0.1),
+              blurRadius: 10,
+              offset: const Offset(0, 5),
+            ),
+          ],
+          border: notificacao.lida 
+            ? null 
+            : Border.all(
+                color: const Color(0xFFFF8C00).withOpacity(0.3),
+                width: 2,
+              ),
+        ),
+        child: Stack(
+          children: [
+            Padding(
+              padding: const EdgeInsets.all(20),
+              child: Row(
+                children: [
+                  // Ícone da notificação
+                  Container(
+                    width: 50,
+                    height: 50,
+                    decoration: BoxDecoration(
+                      color: _getNotificacaoColor(notificacao.tipo),
+                      borderRadius: BorderRadius.circular(25),
+                      boxShadow: [
+                        BoxShadow(
+                          color: _getNotificacaoColor(notificacao.tipo).withOpacity(0.3),
+                          blurRadius: 8,
+                          offset: const Offset(0, 4),
+                        ),
+                      ],
+                    ),
+                    child: Icon(
+                      _getNotificacaoIcon(notificacao.tipo),
+                      color: Colors.white,
+                      size: 24,
+                    ),
+                  ),
+                  
+                  const SizedBox(width: 16),
+                  
+                  // Conteúdo da notificação
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          children: [
+                            Expanded(
+                              child: Text(
+                                notificacao.titulo,
+                                style: TextStyle(
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.bold,
+                                  color: notificacao.lida ? Colors.grey[600] : Colors.black87,
+                                ),
+                              ),
+                            ),
+                            if (!notificacao.lida)
+                              Container(
+                                width: 10,
+                                height: 10,
+                                decoration: const BoxDecoration(
+                                  color: Color(0xFFFF8C00),
+                                  shape: BoxShape.circle,
+                                ),
+                              ),
+                          ],
+                        ),
+                        const SizedBox(height: 8),
+                        Text(
+                          notificacao.mensagem,
+                          style: TextStyle(
+                            fontSize: 14,
+                            color: notificacao.lida ? Colors.grey[500] : Colors.black54,
+                            height: 1.4,
+                          ),
+                        ),
+                        if (notificacao.createdAt != null) ...[
+                          const SizedBox(height: 12),
+                          Row(
+                            children: [
+                              Icon(
+                                Icons.access_time,
+                                size: 14,
+                                color: notificacao.lida ? Colors.grey[400] : Colors.grey[600],
+                              ),
+                              const SizedBox(width: 4),
+                              Text(
+                                _formatarDataHora(notificacao.createdAt!),
+                                style: TextStyle(
+                                  fontSize: 12,
+                                  color: notificacao.lida ? Colors.grey[400] : Colors.grey[600],
+                                ),
+                              ),
+                            ],
+                          ),
+                        ],
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            
+            // Indicador de tipo no canto superior direito
+            Positioned(
+              top: 12,
+              right: 12,
+              child: Container(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                decoration: BoxDecoration(
+                  color: _getNotificacaoColor(notificacao.tipo).withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Text(
+                  _getTipoLabel(notificacao.tipo),
+                  style: TextStyle(
+                    fontSize: 10,
+                    fontWeight: FontWeight.bold,
+                    color: _getNotificacaoColor(notificacao.tipo),
+                  ),
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  String _formatarDataHora(DateTime data) {
+    final agora = DateTime.now();
+    final diferenca = agora.difference(data);
+    
+    if (diferenca.inMinutes < 1) {
+      return 'Agora mesmo';
+    } else if (diferenca.inMinutes < 60) {
+      return '${diferenca.inMinutes}min atrás';
+    } else if (diferenca.inHours < 24) {
+      return '${diferenca.inHours}h atrás';
+    } else if (diferenca.inDays == 1) {
+      return 'Ontem';
+    } else if (diferenca.inDays < 7) {
+      return '${diferenca.inDays} dias atrás';
+    } else {
+      return DateFormat('dd/MM/yyyy - HH:mm').format(data);
+    }
+  }
+
+  String _getTipoLabel(String tipo) {
+    switch (tipo) {
+      case 'evento':
+        return 'EVENTO';
+      case 'pagamento':
+        return 'PAGAMENTO';
+      case 'info':
+        return 'INFO';
+      case 'alerta':
+        return 'ALERTA';
+      default:
+        return 'GERAL';
+    }
+  }
+
   Color _getNotificacaoColor(String tipo) {
     switch (tipo) {
       case 'evento':
         return const Color(0xFF8B2F8B);
-      case 'promocao':
-        return const Color(0xFFFF8C00);
-      case 'lembrete':
+      case 'pagamento':
         return const Color(0xFF4CAF50);
-      case 'urgente':
-        return const Color(0xFFF44336);
-      default:
+      case 'info':
         return const Color(0xFF2196F3);
+      case 'alerta':
+        return const Color(0xFFFF5722);
+      default:
+        return const Color(0xFF607D8B);
     }
   }
 
@@ -492,40 +483,14 @@ class _NotificacoesScreenState extends State<NotificacoesScreen> {
     switch (tipo) {
       case 'evento':
         return Icons.event;
-      case 'promocao':
-        return Icons.local_offer;
-      case 'lembrete':
-        return Icons.alarm;
-      case 'urgente':
-        return Icons.priority_high;
-      default:
+      case 'pagamento':
+        return Icons.payment;
+      case 'info':
         return Icons.info;
+      case 'alerta':
+        return Icons.warning;
+      default:
+        return Icons.notifications;
     }
   }
-}
-
-// Painter personalizado para o logo
-class PaintSplashPainter extends CustomPainter {
-  @override
-  void paint(Canvas canvas, Size size) {
-    final paint = Paint()
-      ..style = PaintingStyle.fill;
-
-    // Splash rosa
-    paint.color = const Color(0xFFFF1493).withOpacity(0.1);
-    canvas.drawOval(
-      Rect.fromLTWH(0, 0, size.width * 0.6, size.height * 0.8),
-      paint,
-    );
-
-    // Splash azul
-    paint.color = const Color(0xFF00BFFF).withOpacity(0.1);
-    canvas.drawOval(
-      Rect.fromLTWH(size.width * 0.4, size.height * 0.2, size.width * 0.6, size.height * 0.8),
-      paint,
-    );
-  }
-
-  @override
-  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
 }

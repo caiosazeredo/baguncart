@@ -79,11 +79,11 @@ class _ClientesScreenState extends State<ClientesScreen> {
             const SizedBox(height: 16),
             const Divider(),
             const SizedBox(height: 8),
-            Row(
+            const Row(
               children: [
-                const Icon(Icons.lock, size: 16, color: Colors.orange),
-                const SizedBox(width: 8),
-                const Text(
+                Icon(Icons.lock, size: 16, color: Colors.orange),
+                SizedBox(width: 8),
+                Text(
                   'Senha para app:',
                   style: TextStyle(fontWeight: FontWeight.bold),
                 ),

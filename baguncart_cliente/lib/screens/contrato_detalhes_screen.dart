@@ -1,262 +1,119 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import '../models/models.dart';
-import '../services/firebase_service.dart';
 import 'home_screen.dart';
-import 'contratos_screen.dart';
-import 'notificacoes_screen.dart';
 
-class ContratoDetalhesScreen extends StatefulWidget {
+class ContratoDetalhesScreen extends StatelessWidget {
   final Contrato contrato;
 
-  const ContratoDetalhesScreen({super.key, required this.contrato});
-
-  @override
-  State<ContratoDetalhesScreen> createState() => _ContratoDetalhesScreenState();
-}
-
-class _ContratoDetalhesScreenState extends State<ContratoDetalhesScreen> {
-  final FirebaseService _firebaseService = FirebaseService();
-  Contrato? _contratoCompleto;
-  bool _isLoading = true;
-
-  @override
-  void initState() {
-    super.initState();
-    _loadContratoDetalhes();
-  }
-
-  Future<void> _loadContratoDetalhes() async {
-    setState(() => _isLoading = true);
-    
-    try {
-      if (widget.contrato.id != null) {
-        final contrato = await _firebaseService.getContratoById(widget.contrato.id!);
-        if (mounted) {
-          setState(() {
-            _contratoCompleto = contrato ?? widget.contrato;
-            _isLoading = false;
-          });
-        }
-      } else {
-        setState(() {
-          _contratoCompleto = widget.contrato;
-          _isLoading = false;
-        });
-      }
-    } catch (e) {
-      if (mounted) {
-        setState(() {
-          _contratoCompleto = widget.contrato;
-          _isLoading = false;
-        });
-      }
-    }
-  }
-
-  void _onItemTapped(int index) {
-    switch (index) {
-      case 0:
-        Navigator.pushAndRemoveUntil(
-          context,
-          MaterialPageRoute(builder: (_) => const HomeScreen()),
-          (route) => false,
-        );
-        break;
-      case 1:
-        Navigator.pushAndRemoveUntil(
-          context,
-          MaterialPageRoute(builder: (_) => const ContratosScreen()),
-          (route) => false,
-        );
-        break;
-      case 2:
-        Navigator.pushAndRemoveUntil(
-          context,
-          MaterialPageRoute(builder: (_) => const NotificacoesScreen()),
-          (route) => false,
-        );
-        break;
-    }
-  }
+  const ContratoDetalhesScreen({
+    super.key,
+    required this.contrato,
+  });
 
   @override
   Widget build(BuildContext context) {
-    final contrato = _contratoCompleto ?? widget.contrato;
-    
     return Scaffold(
+      appBar: AppBar(
+        title: Text(
+          'Contrato ${contrato.numero}',
+          style: const TextStyle(
+            fontWeight: FontWeight.bold,
+          ),
+        ),
+        backgroundColor: const Color(0xFF8B2F8B),
+        foregroundColor: Colors.white,
+        elevation: 0,
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back),
+          onPressed: () => Navigator.pop(context),
+        ),
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.home),
+            onPressed: () => Navigator.pushAndRemoveUntil(
+              context,
+              MaterialPageRoute(builder: (_) => const HomeScreen()),
+              (route) => false,
+            ),
+          ),
+        ],
+      ),
       body: Container(
         decoration: const BoxDecoration(
-          color: Color(0xFFF8F9FA),
+          gradient: LinearGradient(
+            begin: Alignment.topCenter,
+            end: Alignment.bottomCenter,
+            colors: [
+              Color(0xFF8B2F8B),
+              Color(0xFF6A1B6A),
+            ],
+          ),
         ),
-        child: SafeArea(
+        child: SingleChildScrollView(
+          padding: const EdgeInsets.all(24),
           child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              const SizedBox(height: 20),
-              
-              // Header com logo e botão voltar
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 24),
-                child: Row(
-                  children: [
-                    IconButton(
-                      onPressed: () => Navigator.pop(context),
-                      icon: const Icon(
-                        Icons.arrow_back,
-                        color: Color(0xFF8B2F8B),
-                      ),
-                    ),
-                    
-                    const SizedBox(width: 16),
-                    
-                    // Logo BagunçArt
-                    Container(
-                      width: 120,
-                      height: 50,
-                      child: Stack(
-                        children: [
-                          Positioned.fill(
-                            child: CustomPaint(
-                              painter: PaintSplashPainter(),
-                            ),
-                          ),
-                          Center(
-                            child: RichText(
-                              textAlign: TextAlign.center,
-                              text: const TextSpan(
-                                children: [
-                                  TextSpan(
-                                    text: 'Bagunç',
-                                    style: TextStyle(
-                                      fontSize: 16,
-                                      fontWeight: FontWeight.bold,
-                                      color: Color(0xFFFF1493),
-                                      fontFamily: 'Arial',
-                                    ),
-                                  ),
-                                  TextSpan(
-                                    text: 'Art',
-                                    style: TextStyle(
-                                      fontSize: 16,
-                                      fontWeight: FontWeight.bold,
-                                      color: Color(0xFF00BFFF),
-                                      fontFamily: 'Arial',
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
+              // Card principal do contrato
+              Container(
+                padding: const EdgeInsets.all(24),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(20),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withOpacity(0.1),
+                      blurRadius: 20,
+                      offset: const Offset(0, 10),
                     ),
                   ],
                 ),
-              ),
-              
-              const SizedBox(height: 20),
-              
-              // Título
-              const Padding(
-                padding: EdgeInsets.symmetric(horizontal: 24),
-                child: Align(
-                  alignment: Alignment.centerLeft,
-                  child: Text(
-                    'CONTRATO',
-                    style: TextStyle(
-                      fontSize: 24,
-                      fontWeight: FontWeight.bold,
-                      color: Color(0xFFFF8C00),
-                    ),
-                  ),
-                ),
-              ),
-              
-              const SizedBox(height: 20),
-              
-              // Conteúdo do contrato
-              Expanded(
-                child: _isLoading
-                    ? const Center(child: CircularProgressIndicator())
-                    : SingleChildScrollView(
-                        padding: const EdgeInsets.fromLTRB(24, 0, 24, 100),
-                        child: Container(
-                          padding: const EdgeInsets.all(24),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    // Header do contrato
+                    Row(
+                      children: [
+                        Container(
+                          padding: const EdgeInsets.all(12),
                           decoration: BoxDecoration(
-                            gradient: const LinearGradient(
-                              colors: [Color(0xFF8B2F8B), Color(0xFF6A1B6A)],
-                              begin: Alignment.topLeft,
-                              end: Alignment.bottomRight,
-                            ),
-                            borderRadius: BorderRadius.circular(20),
-                            boxShadow: [
-                              BoxShadow(
-                                color: const Color(0xFF8B2F8B).withOpacity(0.3),
-                                blurRadius: 20,
-                                offset: const Offset(0, 10),
-                              ),
-                            ],
+                            color: const Color(0xFF8B2F8B).withOpacity(0.1),
+                            borderRadius: BorderRadius.circular(12),
                           ),
+                          child: const Icon(
+                            Icons.description,
+                            color: Color(0xFF8B2F8B),
+                            size: 32,
+                          ),
+                        ),
+                        const SizedBox(width: 16),
+                        Expanded(
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              // Informações básicas
-                              _buildInfoRow('Contrato:', contrato.numero),
-                              _buildInfoRow('Contratante:', contrato.clienteNome ?? 'N/A'),
-                              
-                              const SizedBox(height: 16),
-                              
-                              _buildInfoRow(
-                                'Data do Evento:', 
-                                contrato.dataEvento != null 
-                                    ? DateFormat('dd/MM/yy').format(contrato.dataEvento!)
-                                    : 'N/A'
-                              ),
-                              _buildInfoRow(
-                                'Local do Evento:', 
-                                contrato.localEvento ?? 'Não informado'
-                              ),
-                              
-                              const SizedBox(height: 24),
-                              
-                              // Serviços contratados
-                              const Text(
-                                'Serviços contratados:',
-                                style: TextStyle(
-                                  color: Colors.white,
-                                  fontSize: 16,
+                              Text(
+                                'Contrato ${contrato.numero}',
+                                style: const TextStyle(
+                                  fontSize: 24,
                                   fontWeight: FontWeight.bold,
+                                  color: Color(0xFF8B2F8B),
                                 ),
                               ),
-                              
-                              const SizedBox(height: 16),
-                              
-                              if (contrato.servicos != null && contrato.servicos!.isNotEmpty) ...[
-                                ...contrato.servicos!.map((servico) => _buildServicoItem(servico)),
-                              ] else ...[
-                                // Serviços mock baseados no protótipo
-                                _buildServicoItem(const Servico(nome: 'Pula pula', preco: 20.00)),
-                                _buildServicoItem(const Servico(nome: 'Garçom', preco: 20.00)),
-                                _buildServicoItem(const Servico(nome: 'Barman', preco: 20.00)),
-                                _buildServicoItem(const Servico(nome: 'Palhaço', preco: 20.00)),
-                                _buildServicoItem(const Servico(nome: 'Recepção', preco: 20.00)),
-                              ],
-                              
-                              const SizedBox(height: 24),
-                              
-                              // Valor total
                               Container(
-                                width: double.infinity,
-                                padding: const EdgeInsets.all(16),
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 12,
+                                  vertical: 4,
+                                ),
                                 decoration: BoxDecoration(
-                                  color: Colors.white.withOpacity(0.1),
-                                  borderRadius: BorderRadius.circular(12),
+                                  color: _getStatusColor(contrato.status),
+                                  borderRadius: BorderRadius.circular(20),
                                 ),
                                 child: Text(
-                                  'Valor Total: ${NumberFormat.currency(locale: 'pt_BR', symbol: 'R\$').format(contrato.valorTotal ?? 100.00)}',
+                                  _getStatusText(contrato.status),
                                   style: const TextStyle(
                                     color: Colors.white,
-                                    fontSize: 18,
+                                    fontSize: 12,
                                     fontWeight: FontWeight.bold,
                                   ),
                                 ),
@@ -264,153 +121,372 @@ class _ContratoDetalhesScreenState extends State<ContratoDetalhesScreen> {
                             ],
                           ),
                         ),
+                      ],
+                    ),
+                    
+                    const SizedBox(height: 24),
+                    const Divider(),
+                    const SizedBox(height: 24),
+                    
+                    // Informações do evento
+                    _buildSection(
+                      'Informações do Evento',
+                      Icons.event,
+                      [
+                        _buildInfoRow(
+                          'Data do Evento',
+                          contrato.dataEvento != null
+                              ? DateFormat('dd/MM/yyyy').format(contrato.dataEvento!)
+                              : 'Não definida',
+                          Icons.calendar_today,
+                        ),
+                        if (contrato.localEvento != null && contrato.localEvento!.isNotEmpty)
+                          _buildInfoRow(
+                            'Local do Evento',
+                            contrato.localEvento!,
+                            Icons.location_on,
+                          ),
+                        _buildInfoRow(
+                          'Valor Total',
+                          contrato.valorTotal != null 
+                              ? 'R\$ ${contrato.valorTotal!.toStringAsFixed(2)}'
+                              : 'Não definido',
+                          Icons.attach_money,
+                        ),
+                        if (contrato.formaPagamento != null)
+                          _buildInfoRow(
+                            'Forma de Pagamento',
+                            _getFormaPagamentoText(contrato.formaPagamento!),
+                            Icons.payment,
+                          ),
+                      ],
+                    ),
+                    
+                    const SizedBox(height: 24),
+                    
+                    // Informações do cliente
+                    _buildSection(
+                      'Informações do Cliente',
+                      Icons.person,
+                      [
+                        _buildInfoRow(
+                          'Nome',
+                          contrato.clienteNome ?? 'Não informado',
+                          Icons.person_outline,
+                        ),
+                        _buildInfoRow(
+                          'ID do Cliente',
+                          contrato.clienteId ?? 'Não informado',
+                          Icons.badge,
+                        ),
+                      ],
+                    ),
+                    
+                    // Serviços inclusos
+                    if (contrato.servicos != null && contrato.servicos!.isNotEmpty) ...[
+                      const SizedBox(height: 24),
+                      _buildServicosSection(),
+                    ],
+                    
+                    const SizedBox(height: 24),
+                    
+                    // Data de criação
+                    if (contrato.createdAt != null)
+                      _buildInfoRow(
+                        'Contrato criado em',
+                        DateFormat('dd/MM/yyyy - HH:mm').format(contrato.createdAt!),
+                        Icons.schedule,
                       ),
+                  ],
+                ),
               ),
+              
+              const SizedBox(height: 24),
+              
+              // Botões de ação
+              _buildActionButtons(context),
             ],
           ),
         ),
       ),
-      
-      // Bottom Navigation
-      bottomNavigationBar: Container(
-        decoration: BoxDecoration(
-          color: Colors.white,
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withOpacity(0.1),
-              blurRadius: 10,
-              offset: const Offset(0, -5),
-            ),
-          ],
-        ),
-        child: BottomNavigationBar(
-          currentIndex: 1,
-          onTap: _onItemTapped,
-          type: BottomNavigationBarType.fixed,
-          backgroundColor: Colors.transparent,
-          elevation: 0,
-          selectedItemColor: const Color(0xFF8B2F8B),
-          unselectedItemColor: Colors.grey,
-          items: const [
-            BottomNavigationBarItem(
-              icon: Icon(Icons.home),
-              label: 'HOME',
-            ),
-            BottomNavigationBarItem(
-              icon: Icon(Icons.description),
-              label: 'CONTRATO',
-            ),
-            BottomNavigationBarItem(
-              icon: Icon(Icons.notifications),
-              label: 'NOTIFICAÇÃO',
-            ),
-          ],
-        ),
-      ),
     );
   }
 
-  Widget _buildInfoRow(String label, String value) {
+  Widget _buildSection(String title, IconData icon, List<Widget> children) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          children: [
+            Icon(icon, color: const Color(0xFF8B2F8B), size: 20),
+            const SizedBox(width: 8),
+            Text(
+              title,
+              style: const TextStyle(
+                fontSize: 18,
+                fontWeight: FontWeight.bold,
+                color: Color(0xFF8B2F8B),
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 16),
+        ...children,
+      ],
+    );
+  }
+
+  Widget _buildInfoRow(String label, String value, IconData icon) {
     return Padding(
-      padding: const EdgeInsets.only(bottom: 8),
+      padding: const EdgeInsets.only(bottom: 12),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          SizedBox(
-            width: 120,
-            child: Text(
-              label,
-              style: const TextStyle(
-                color: Colors.white,
-                fontSize: 14,
-                fontWeight: FontWeight.w500,
-              ),
-            ),
-          ),
-          Expanded(
-            child: Text(
-              value,
-              style: const TextStyle(
-                color: Colors.white,
-                fontSize: 14,
-                fontWeight: FontWeight.w300,
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildServicoItem(Servico servico) {
-    return Container(
-      margin: const EdgeInsets.only(bottom: 8),
-      child: Row(
-        children: [
-          Container(
-            width: 8,
-            height: 8,
-            decoration: const BoxDecoration(
-              color: Colors.white,
-              shape: BoxShape.circle,
-            ),
-          ),
+          Icon(icon, size: 16, color: Colors.grey[600]),
           const SizedBox(width: 12),
           Expanded(
+            flex: 2,
             child: Text(
-              servico.nome,
+              '$label:',
               style: const TextStyle(
-                color: Colors.white,
                 fontSize: 14,
-                fontWeight: FontWeight.w300,
+                fontWeight: FontWeight.w500,
+                color: Colors.black87,
               ),
             ),
           ),
-          Text(
-            NumberFormat.currency(locale: 'pt_BR', symbol: 'R\$').format(servico.preco),
-            style: const TextStyle(
-              color: Colors.white,
-              fontSize: 14,
-              fontWeight: FontWeight.w500,
+          Expanded(
+            flex: 3,
+            child: Text(
+              value,
+              style: const TextStyle(fontSize: 14),
             ),
           ),
         ],
       ),
     );
   }
-}
 
-class PaintSplashPainter extends CustomPainter {
-  @override
-  void paint(Canvas canvas, Size size) {
-    // Manchas de tinta decorativas pequenas
-    final paint = Paint()..style = PaintingStyle.fill;
-
-    canvas.drawCircle(
-      Offset(size.width * 0.2, size.height * 0.3),
-      4,
-      paint..color = const Color(0xFFFF1493).withOpacity(0.3),
-    );
-    
-    canvas.drawCircle(
-      Offset(size.width * 0.8, size.height * 0.2),
-      3,
-      paint..color = const Color(0xFF00BFFF).withOpacity(0.3),
-    );
-    
-    canvas.drawCircle(
-      Offset(size.width * 0.1, size.height * 0.8),
-      2,
-      paint..color = const Color(0xFFFF1493).withOpacity(0.2),
-    );
-    
-    canvas.drawCircle(
-      Offset(size.width * 0.9, size.height * 0.7),
-      3,
-      paint..color = const Color(0xFF00BFFF).withOpacity(0.2),
+  Widget _buildServicosSection() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          children: [
+            const Icon(Icons.list_alt, color: Color(0xFF8B2F8B), size: 20),
+            const SizedBox(width: 8),
+            const Text(
+              'Serviços Inclusos',
+              style: TextStyle(
+                fontSize: 18,
+                fontWeight: FontWeight.bold,
+                color: Color(0xFF8B2F8B),
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 16),
+        ...contrato.servicos!.map((servico) => Container(
+          margin: const EdgeInsets.only(bottom: 12),
+          padding: const EdgeInsets.all(16),
+          decoration: BoxDecoration(
+            color: Colors.grey[50],
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(color: Colors.grey[200]!),
+          ),
+          child: Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: const Color(0xFF4CAF50).withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: const Icon(
+                  Icons.check_circle,
+                  color: Color(0xFF4CAF50),
+                  size: 20,
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      servico.nome,
+                      style: const TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    // Removido servico.descricao pois não existe no modelo
+                    Text(
+                      'Serviço ${servico.ativo ? 'ativo' : 'inativo'}',
+                      style: TextStyle(
+                        fontSize: 12,
+                        color: servico.ativo ? Colors.green : Colors.grey[600],
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              Text(
+                'R\$ ${servico.preco.toStringAsFixed(2)}',
+                style: const TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.bold,
+                  color: Color(0xFF4CAF50),
+                ),
+              ),
+            ],
+          ),
+        )),
+        
+        // Total dos serviços
+        Container(
+          padding: const EdgeInsets.all(16),
+          decoration: BoxDecoration(
+            color: const Color(0xFF8B2F8B).withOpacity(0.1),
+            borderRadius: BorderRadius.circular(12),
+          ),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              const Text(
+                'Total dos Serviços:',
+                style: TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.bold,
+                  color: Color(0xFF8B2F8B),
+                ),
+              ),
+              Text(
+                'R\$ ${contrato.servicos!.fold(0.0, (sum, servico) => sum + servico.preco).toStringAsFixed(2)}',
+                style: const TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.bold,
+                  color: Color(0xFF8B2F8B),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ],
     );
   }
 
-  @override
-  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
+  Widget _buildActionButtons(BuildContext context) {
+    return Column(
+      children: [
+        // Botão de contato
+        SizedBox(
+          width: double.infinity,
+          height: 56,
+          child: ElevatedButton.icon(
+            onPressed: () {
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(
+                  content: Text('Entre em contato: (11) 99999-9999'),
+                  backgroundColor: Color(0xFF4CAF50),
+                ),
+              );
+            },
+            icon: const Icon(Icons.phone),
+            label: const Text(
+              'ENTRAR EM CONTATO',
+              style: TextStyle(
+                fontSize: 16,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: const Color(0xFF4CAF50),
+              foregroundColor: Colors.white,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12),
+              ),
+              elevation: 5,
+            ),
+          ),
+        ),
+        
+        const SizedBox(height: 12),
+        
+        // Botão de voltar
+        SizedBox(
+          width: double.infinity,
+          height: 48,
+          child: OutlinedButton.icon(
+            onPressed: () => Navigator.pop(context),
+            icon: const Icon(Icons.arrow_back),
+            label: const Text('VOLTAR'),
+            style: OutlinedButton.styleFrom(
+              foregroundColor: Colors.white,
+              side: const BorderSide(color: Colors.white),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12),
+              ),
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
+  String _getStatusText(String status) {
+    switch (status.toLowerCase()) {
+      case 'ativo':
+        return 'ATIVO';
+      case 'concluido':
+        return 'CONCLUÍDO';
+      case 'cancelado':
+        return 'CANCELADO';
+      case 'pendente':
+        return 'PENDENTE';
+      case 'confirmado':
+        return 'CONFIRMADO';
+      case 'em_andamento':
+        return 'EM ANDAMENTO';
+      default:
+        return status.toUpperCase();
+    }
+  }
+
+  Color _getStatusColor(String status) {
+    switch (status.toLowerCase()) {
+      case 'ativo':
+      case 'confirmado':
+        return const Color(0xFF4CAF50);
+      case 'concluido':
+        return const Color(0xFF2196F3);
+      case 'cancelado':
+        return const Color(0xFFFF5722);
+      case 'pendente':
+        return const Color(0xFFFF8C00);
+      case 'em_andamento':
+        return const Color(0xFF9C27B0);
+      default:
+        return Colors.grey;
+    }
+  }
+
+  String _getFormaPagamentoText(String formaPagamento) {
+    switch (formaPagamento.toLowerCase()) {
+      case 'dinheiro':
+        return 'Dinheiro';
+      case 'cartao_credito':
+        return 'Cartão de Crédito';
+      case 'cartao_debito':
+        return 'Cartão de Débito';
+      case 'pix':
+        return 'PIX';
+      case 'transferencia':
+        return 'Transferência';
+      case 'parcelado':
+        return 'Parcelado';
+      default:
+        return formaPagamento;
+    }
+  }
 }

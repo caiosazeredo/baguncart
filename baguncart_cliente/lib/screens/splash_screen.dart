@@ -1,4 +1,3 @@
-import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../services/firebase_service.dart';
@@ -43,8 +42,7 @@ class _SplashScreenState extends State<SplashScreen>
       curve: Curves.elasticOut,
     ));
 
-    _animationController.forward();
-    _checkLoginStatus();
+    _iniciarAnimacao();
   }
 
   @override
@@ -53,31 +51,47 @@ class _SplashScreenState extends State<SplashScreen>
     super.dispose();
   }
 
-  Future<void> _checkLoginStatus() async {
-    await Future.delayed(const Duration(seconds: 3));
+  Future<void> _iniciarAnimacao() async {
+    // Iniciar animação
+    _animationController.forward();
     
+    // Aguardar animação + tempo mínimo para splash
+    await Future.wait([
+      _animationController.forward(),
+      Future.delayed(const Duration(seconds: 3)),
+    ]);
+    
+    // Verificar se usuário está logado
+    await _verificarLogin();
+  }
+
+  Future<void> _verificarLogin() async {
     try {
       final prefs = await SharedPreferences.getInstance();
-      final cpfSalvo = prefs.getString('cliente_cpf');
-      final senhaSalva = prefs.getString('cliente_senha');
-      
+      final cpfSalvo = prefs.getString('cpf_logado');
+      final senhaSalva = prefs.getString('senha_logada');
+
       if (cpfSalvo != null && senhaSalva != null) {
+        // Tentar login automático
         final firebaseService = FirebaseService();
-        final success = await firebaseService.loginSimples(cpfSalvo, senhaSalva);
+        final sucesso = await firebaseService.loginCliente(cpfSalvo, senhaSalva);
         
-        if (success && mounted) {
-          Navigator.of(context).pushReplacement(
+        if (sucesso && mounted) {
+          Navigator.pushReplacement(
+            context,
             MaterialPageRoute(builder: (_) => const HomeScreen()),
           );
           return;
         }
       }
     } catch (e) {
-      print('Erro ao verificar login salvo: $e');
+      print('❌ DEBUG: Erro no login automático: $e');
     }
     
+    // Se chegou aqui, ir para tela de login
     if (mounted) {
-      Navigator.of(context).pushReplacement(
+      Navigator.pushReplacement(
+        context,
         MaterialPageRoute(builder: (_) => const LoginScreen()),
       );
     }
@@ -89,159 +103,110 @@ class _SplashScreenState extends State<SplashScreen>
       body: Container(
         decoration: const BoxDecoration(
           gradient: LinearGradient(
-            colors: [Color(0xFF8B2F8B), Color(0xFFFF8C00)],
-            begin: Alignment.topCenter,
-            end: Alignment.bottomCenter,
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+            colors: [
+              Color(0xFF8B2F8B),
+              Color(0xFF6A1B6A),
+              Color(0xFF4A1A4A),
+            ],
           ),
         ),
         child: Center(
-          child: AnimatedBuilder(
-            animation: _animationController,
-            builder: (context, child) {
-              return FadeTransition(
-                opacity: _fadeAnimation,
-                child: ScaleTransition(
-                  scale: _scaleAnimation,
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      // Logo com efeitos de pintura
-                      Container(
-                        width: 200,
-                        height: 100,
-                        child: Stack(
-                          children: [
-                            // Background com manchas de tinta
-                            Positioned.fill(
-                              child: CustomPaint(
-                                painter: PaintSplashPainter(),
-                              ),
-                            ),
-                            // Texto principal
-                            Center(
-                              child: RichText(
-                                textAlign: TextAlign.center,
-                                text: const TextSpan(
-                                  children: [
-                                    TextSpan(
-                                      text: 'Bagunç',
-                                      style: TextStyle(
-                                        fontSize: 28,
-                                        fontWeight: FontWeight.bold,
-                                        color: Color(0xFFFF1493), // Rosa
-                                        fontFamily: 'Arial',
-                                      ),
-                                    ),
-                                    TextSpan(
-                                      text: 'Art',
-                                      style: TextStyle(
-                                        fontSize: 28,
-                                        fontWeight: FontWeight.bold,
-                                        color: Color(0xFF00BFFF), // Azul
-                                        fontFamily: 'Arial',
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                              ),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              // Logo animado
+              AnimatedBuilder(
+                animation: _animationController,
+                builder: (context, child) {
+                  return FadeTransition(
+                    opacity: _fadeAnimation,
+                    child: ScaleTransition(
+                      scale: _scaleAnimation,
+                      child: Container(
+                        padding: const EdgeInsets.all(40),
+                        decoration: BoxDecoration(
+                          color: Colors.white.withOpacity(0.1),
+                          borderRadius: BorderRadius.circular(30),
+                          boxShadow: [
+                            BoxShadow(
+                              color: Colors.black.withOpacity(0.2),
+                              blurRadius: 20,
+                              offset: const Offset(0, 10),
                             ),
                           ],
                         ),
-                      ),
-                      
-                      const SizedBox(height: 50),
-                      
-                      // Loading indicator
-                      const CircularProgressIndicator(
-                        color: Colors.white,
-                        strokeWidth: 3,
-                      ),
-                      
-                      const SizedBox(height: 20),
-                      
-                      const Text(
-                        'Carregando...',
-                        style: TextStyle(
+                        child: const Icon(
+                          Icons.celebration,
+                          size: 80,
                           color: Colors.white,
-                          fontSize: 16,
-                          fontWeight: FontWeight.w300,
                         ),
                       ),
-                    ],
-                  ),
+                    ),
+                  );
+                },
+              ),
+              
+              const SizedBox(height: 40),
+              
+              // Nome do app
+              FadeTransition(
+                opacity: _fadeAnimation,
+                child: const Column(
+                  children: [
+                    Text(
+                      'BagunçArt',
+                      style: TextStyle(
+                        fontSize: 48,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.white,
+                        letterSpacing: 2,
+                      ),
+                    ),
+                    SizedBox(height: 8),
+                    Text(
+                      'Sua festa dos sonhos',
+                      style: TextStyle(
+                        fontSize: 18,
+                        color: Colors.white70,
+                        fontWeight: FontWeight.w300,
+                      ),
+                    ),
+                  ],
                 ),
-              );
-            },
+              ),
+              
+              const SizedBox(height: 60),
+              
+              // Indicador de loading
+              FadeTransition(
+                opacity: _fadeAnimation,
+                child: Column(
+                  children: [
+                    const SizedBox(
+                      width: 40,
+                      height: 40,
+                      child: CircularProgressIndicator(
+                        valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                        strokeWidth: 3,
+                      ),
+                    ),
+                    const SizedBox(height: 20),
+                    Text(
+                      'Carregando...',
+                      style: TextStyle(
+                        fontSize: 16,
+                        color: Colors.white.withOpacity(0.8),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
           ),
         ),
       ),
     );
   }
-}
-
-class PaintSplashPainter extends CustomPainter {
-  @override
-  void paint(Canvas canvas, Size size) {
-    final paint = Paint()
-      ..color = Colors.white.withOpacity(0.1)
-      ..style = PaintingStyle.fill;
-
-    // Manchas de tinta decorativas
-    canvas.drawCircle(
-      Offset(size.width * 0.2, size.height * 0.3),
-      15,
-      paint..color = const Color(0xFFFF1493).withOpacity(0.3),
-    );
-    
-    canvas.drawCircle(
-      Offset(size.width * 0.8, size.height * 0.2),
-      10,
-      paint..color = const Color(0xFF00BFFF).withOpacity(0.3),
-    );
-    
-    canvas.drawCircle(
-      Offset(size.width * 0.1, size.height * 0.8),
-      8,
-      paint..color = const Color(0xFFFF1493).withOpacity(0.2),
-    );
-    
-    canvas.drawCircle(
-      Offset(size.width * 0.9, size.height * 0.7),
-      12,
-      paint..color = const Color(0xFF00BFFF).withOpacity(0.2),
-    );
-    
-    // Estrelas pequenas
-    _drawStar(canvas, Offset(size.width * 0.15, size.height * 0.15), 4);
-    _drawStar(canvas, Offset(size.width * 0.85, size.height * 0.85), 3);
-    _drawStar(canvas, Offset(size.width * 0.7, size.height * 0.4), 3);
-  }
-
-  void _drawStar(Canvas canvas, Offset center, double radius) {
-    final paint = Paint()
-      ..color = Colors.white.withOpacity(0.6)
-      ..style = PaintingStyle.fill;
-
-    final path = Path();
-    const points = 5;
-    const angle = 2 * 3.14159 / points;
-
-    for (int i = 0; i < points * 2; i++) {
-      final currentAngle = i * angle / 2 - 3.14159 / 2;
-      final currentRadius = (i % 2 == 0) ? radius : radius * 0.5;
-      final x = center.dx + currentRadius * 0.8 * math.cos(currentAngle);
-      final y = center.dy + currentRadius * 0.8 * math.sin(currentAngle);
-      
-      if (i == 0) {
-        path.moveTo(x, y);
-      } else {
-        path.lineTo(x, y);
-      }
-    }
-    path.close();
-    canvas.drawPath(path, paint);
-  }
-
-  @override
-  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
 }

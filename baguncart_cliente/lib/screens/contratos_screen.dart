@@ -70,150 +70,57 @@ class _ContratosScreenState extends State<ContratosScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final cliente = _firebaseService.clienteLogado;
-    
     return Scaffold(
+      appBar: AppBar(
+        title: const Text(
+          'Meus Contratos',
+          style: TextStyle(
+            fontWeight: FontWeight.bold,
+          ),
+        ),
+        backgroundColor: const Color(0xFF8B2F8B),
+        foregroundColor: Colors.white,
+        elevation: 0,
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back),
+          onPressed: () => Navigator.pushReplacement(
+            context,
+            MaterialPageRoute(builder: (_) => const HomeScreen()),
+          ),
+        ),
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.refresh),
+            onPressed: _loadContratos,
+          ),
+        ],
+      ),
       body: Container(
         decoration: const BoxDecoration(
-          color: Color(0xFFF8F9FA),
-        ),
-        child: SafeArea(
-          child: Column(
-            children: [
-              const SizedBox(height: 20),
-              
-              // Header com logo e botão voltar
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 24),
-                child: Row(
-                  children: [
-                    IconButton(
-                      onPressed: () => Navigator.pop(context),
-                      icon: const Icon(
-                        Icons.arrow_back,
-                        color: Color(0xFF8B2F8B),
-                      ),
-                    ),
-                    
-                    const SizedBox(width: 16),
-                    
-                    // Logo BagunçArt
-                    Container(
-                      width: 120,
-                      height: 50,
-                      child: Stack(
-                        children: [
-                          Positioned.fill(
-                            child: CustomPaint(
-                              painter: PaintSplashPainter(),
-                            ),
-                          ),
-                          Center(
-                            child: RichText(
-                              textAlign: TextAlign.center,
-                              text: const TextSpan(
-                                children: [
-                                  TextSpan(
-                                    text: 'Bagunç',
-                                    style: TextStyle(
-                                      fontSize: 16,
-                                      fontWeight: FontWeight.bold,
-                                      color: Color(0xFFFF1493),
-                                      fontFamily: 'Arial',
-                                    ),
-                                  ),
-                                  TextSpan(
-                                    text: 'Art',
-                                    style: TextStyle(
-                                      fontSize: 16,
-                                      fontWeight: FontWeight.bold,
-                                      color: Color(0xFF00BFFF),
-                                      fontFamily: 'Arial',
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              
-              const SizedBox(height: 20),
-              
-              // Título
-              const Padding(
-                padding: EdgeInsets.symmetric(horizontal: 24),
-                child: Align(
-                  alignment: Alignment.centerLeft,
-                  child: Text(
-                    'CONTRATOS',
-                    style: TextStyle(
-                      fontSize: 24,
-                      fontWeight: FontWeight.bold,
-                      color: Color(0xFF8B2F8B),
-                    ),
-                  ),
-                ),
-              ),
-              
-              const SizedBox(height: 20),
-              
-              // Lista de contratos
-              Expanded(
-                child: _isLoading
-                    ? const Center(child: CircularProgressIndicator())
-                    : _contratos.isEmpty
-                        ? const Center(
-                            child: Column(
-                              mainAxisAlignment: MainAxisAlignment.center,
-                              children: [
-                                Icon(
-                                  Icons.description_outlined,
-                                  size: 64,
-                                  color: Colors.grey,
-                                ),
-                                SizedBox(height: 16),
-                                Text(
-                                  'Nenhum contrato encontrado',
-                                  style: TextStyle(
-                                    fontSize: 18,
-                                    color: Colors.grey,
-                                  ),
-                                ),
-                                SizedBox(height: 8),
-                                Text(
-                                  'Entre em contato para fazer seu primeiro evento!',
-                                  textAlign: TextAlign.center,
-                                  style: TextStyle(
-                                    fontSize: 14,
-                                    color: Colors.grey,
-                                  ),
-                                ),
-                              ],
-                            ),
-                          )
-                        : RefreshIndicator(
-                            onRefresh: _loadContratos,
-                            child: ListView.builder(
-                              padding: const EdgeInsets.fromLTRB(24, 0, 24, 100),
-                              itemCount: _contratos.length,
-                              itemBuilder: (context, index) {
-                                final contrato = _contratos[index];
-                                return _buildContratoCard(contrato);
-                              },
-                            ),
-                          ),
-              ),
+          gradient: LinearGradient(
+            begin: Alignment.topCenter,
+            end: Alignment.bottomCenter,
+            colors: [
+              Color(0xFF8B2F8B),
+              Color(0xFF6A1B6A),
             ],
           ),
         ),
+        child: _isLoading
+          ? const Center(child: CircularProgressIndicator(color: Colors.white))
+          : _contratos.isEmpty
+            ? _buildEmptyState()
+            : RefreshIndicator(
+                onRefresh: _loadContratos,
+                child: ListView.builder(
+                  padding: const EdgeInsets.all(24),
+                  itemCount: _contratos.length,
+                  itemBuilder: (context, index) {
+                    return _buildContratoCard(_contratos[index]);
+                  },
+                ),
+              ),
       ),
-      
-      // Bottom Navigation
       bottomNavigationBar: Container(
         decoration: BoxDecoration(
           color: Colors.white,
@@ -252,127 +159,258 @@ class _ContratosScreenState extends State<ContratosScreen> {
     );
   }
 
-  Widget _buildContratoCard(Contrato contrato) {
-    return Container(
-      margin: const EdgeInsets.only(bottom: 16),
-      child: GestureDetector(
-        onTap: () {
-          Navigator.push(
-            context,
-            MaterialPageRoute(
-              builder: (_) => ContratoDetalhesScreen(contrato: contrato),
-            ),
-          );
-        },
-        child: Container(
-          padding: const EdgeInsets.all(20),
-          decoration: BoxDecoration(
-            gradient: const LinearGradient(
-              colors: [Color(0xFFFF8C00), Color(0xFFFF7F00)],
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
-            ),
-            borderRadius: BorderRadius.circular(15),
-            boxShadow: [
-              BoxShadow(
-                color: const Color(0xFFFF8C00).withOpacity(0.3),
-                blurRadius: 10,
-                offset: const Offset(0, 5),
-              ),
-            ],
+  Widget _buildEmptyState() {
+    return const Center(
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Icon(
+            Icons.description_outlined,
+            size: 80,
+            color: Colors.white70,
           ),
-          child: Row(
+          SizedBox(height: 16),
+          Text(
+            'Nenhum contrato encontrado',
+            style: TextStyle(
+              color: Colors.white70,
+              fontSize: 20,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+          SizedBox(height: 8),
+          Text(
+            'Seus contratos aparecerão aqui\nquando forem criados.',
+            textAlign: TextAlign.center,
+            style: TextStyle(
+              color: Colors.white54,
+              fontSize: 16,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildContratoCard(Contrato contrato) {
+    return GestureDetector(
+      onTap: () {
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (_) => ContratoDetalhesScreen(contrato: contrato),
+          ),
+        );
+      },
+      child: Container(
+        margin: const EdgeInsets.only(bottom: 16),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(16),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withOpacity(0.1),
+              blurRadius: 10,
+              offset: const Offset(0, 5),
+            ),
+          ],
+        ),
+        child: Padding(
+          padding: const EdgeInsets.all(20),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      'Contrato - ${contrato.numero}',
-                      style: const TextStyle(
-                        color: Colors.white,
-                        fontSize: 16,
-                        fontWeight: FontWeight.bold,
-                      ),
+              // Header do contrato
+              Row(
+                children: [
+                  Container(
+                    padding: const EdgeInsets.all(8),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFF8B2F8B).withOpacity(0.1),
+                      borderRadius: BorderRadius.circular(8),
                     ),
-                    
-                    const SizedBox(height: 4),
-                    
-                    Text(
-                      'Contratante - ${contrato.clienteNome ?? 'N/A'}',
-                      style: const TextStyle(
-                        color: Colors.white,
-                        fontSize: 14,
-                        fontWeight: FontWeight.w300,
-                      ),
+                    child: const Icon(
+                      Icons.description,
+                      color: Color(0xFF8B2F8B),
+                      size: 24,
                     ),
-                    
-                    const SizedBox(height: 8),
-                    
-                    Text(
-                      'Data: ${contrato.dataEvento != null ? DateFormat('dd/MM/yy').format(contrato.dataEvento!) : 'N/A'}',
-                      style: const TextStyle(
-                        color: Colors.white,
-                        fontSize: 14,
-                        fontWeight: FontWeight.w300,
-                      ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'Contrato ${contrato.numero}',
+                          style: const TextStyle(
+                            fontSize: 18,
+                            fontWeight: FontWeight.bold,
+                            color: Color(0xFF8B2F8B),
+                          ),
+                        ),
+                        Text(
+                          _getStatusText(contrato.status),
+                          style: TextStyle(
+                            fontSize: 14,
+                            color: _getStatusColor(contrato.status),
+                            fontWeight: FontWeight.w500,
+                          ),
+                        ),
+                      ],
                     ),
-                  ],
-                ),
+                  ),
+                  const Icon(
+                    Icons.arrow_forward_ios,
+                    color: Colors.grey,
+                    size: 16,
+                  ),
+                ],
               ),
               
-              // Ícone de download/visualizar
-              Container(
-                padding: const EdgeInsets.all(12),
-                decoration: BoxDecoration(
-                  color: Colors.white.withOpacity(0.2),
-                  borderRadius: BorderRadius.circular(10),
-                ),
-                child: const Icon(
-                  Icons.file_download_outlined,
-                  color: Colors.white,
-                  size: 24,
-                ),
+              const SizedBox(height: 16),
+              
+              // Informações do evento
+              _buildInfoRow(
+                Icons.event,
+                'Data do Evento',
+                contrato.dataEvento != null
+                  ? DateFormat('dd/MM/yyyy').format(contrato.dataEvento!)
+                  : 'Não definida',
               ),
+              
+              const SizedBox(height: 8),
+              
+              _buildInfoRow(
+                Icons.attach_money,
+                'Valor Total',
+                contrato.valorTotal != null 
+                  ? 'R\$ ${contrato.valorTotal!.toStringAsFixed(2)}'
+                  : 'Não definido',
+              ),
+              
+              // Mostrar local se houver
+              if (contrato.localEvento != null && contrato.localEvento!.isNotEmpty) ...[
+                const SizedBox(height: 8),
+                _buildInfoRow(
+                  Icons.location_on,
+                  'Local',
+                  contrato.localEvento!,
+                ),
+              ],
+              
+              // Mostrar serviços se houver
+              if (contrato.servicos != null && contrato.servicos!.isNotEmpty) ...[
+                const SizedBox(height: 16),
+                const Text(
+                  'Serviços Inclusos:',
+                  style: TextStyle(
+                    fontWeight: FontWeight.bold,
+                    color: Color(0xFF8B2F8B),
+                  ),
+                ),
+                const SizedBox(height: 8),
+                ...contrato.servicos!.take(2).map((servico) => Padding(
+                  padding: const EdgeInsets.only(bottom: 4),
+                  child: Row(
+                    children: [
+                      const Icon(
+                        Icons.check_circle,
+                        size: 16,
+                        color: Color(0xFF4CAF50),
+                      ),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: Text(
+                          servico.nome,
+                          style: const TextStyle(fontSize: 14),
+                        ),
+                      ),
+                      Text(
+                        'R\$ ${servico.preco.toStringAsFixed(2)}',
+                        style: const TextStyle(
+                          fontSize: 14,
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                    ],
+                  ),
+                )),
+                if (contrato.servicos!.length > 2)
+                  Padding(
+                    padding: const EdgeInsets.only(top: 4),
+                    child: Text(
+                      '+ ${contrato.servicos!.length - 2} serviço(s) adicional(is)',
+                      style: const TextStyle(
+                        fontSize: 12,
+                        color: Colors.grey,
+                        fontStyle: FontStyle.italic,
+                      ),
+                    ),
+                  ),
+              ],
             ],
           ),
         ),
       ),
     );
   }
-}
 
-class PaintSplashPainter extends CustomPainter {
-  @override
-  void paint(Canvas canvas, Size size) {
-    // Manchas de tinta decorativas pequenas
-    final paint = Paint()..style = PaintingStyle.fill;
-
-    canvas.drawCircle(
-      Offset(size.width * 0.2, size.height * 0.3),
-      4,
-      paint..color = const Color(0xFFFF1493).withOpacity(0.3),
-    );
-    
-    canvas.drawCircle(
-      Offset(size.width * 0.8, size.height * 0.2),
-      3,
-      paint..color = const Color(0xFF00BFFF).withOpacity(0.3),
-    );
-    
-    canvas.drawCircle(
-      Offset(size.width * 0.1, size.height * 0.8),
-      2,
-      paint..color = const Color(0xFFFF1493).withOpacity(0.2),
-    );
-    
-    canvas.drawCircle(
-      Offset(size.width * 0.9, size.height * 0.7),
-      3,
-      paint..color = const Color(0xFF00BFFF).withOpacity(0.2),
+  Widget _buildInfoRow(IconData icon, String label, String value) {
+    return Row(
+      children: [
+        Icon(icon, size: 16, color: Colors.grey[600]),
+        const SizedBox(width: 8),
+        Text(
+          '$label: ',
+          style: const TextStyle(
+            fontSize: 14,
+            fontWeight: FontWeight.w500,
+          ),
+        ),
+        Expanded(
+          child: Text(
+            value,
+            style: const TextStyle(fontSize: 14),
+          ),
+        ),
+      ],
     );
   }
 
-  @override
-  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
+  String _getStatusText(String status) {
+    switch (status.toLowerCase()) {
+      case 'ativo':
+        return 'Ativo';
+      case 'concluido':
+        return 'Concluído';
+      case 'cancelado':
+        return 'Cancelado';
+      case 'pendente':
+        return 'Pendente';
+      case 'confirmado':
+        return 'Confirmado';
+      case 'em_andamento':
+        return 'Em Andamento';
+      default:
+        return status;
+    }
+  }
+
+  Color _getStatusColor(String status) {
+    switch (status.toLowerCase()) {
+      case 'ativo':
+      case 'confirmado':
+        return const Color(0xFF4CAF50);
+      case 'concluido':
+        return const Color(0xFF2196F3);
+      case 'cancelado':
+        return const Color(0xFFFF5722);
+      case 'pendente':
+        return const Color(0xFFFF8C00);
+      case 'em_andamento':
+        return const Color(0xFF9C27B0);
+      default:
+        return Colors.grey;
+    }
+  }
 }

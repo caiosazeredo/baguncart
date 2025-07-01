@@ -152,11 +152,11 @@ class _CadastroScreenState extends State<CadastroScreen> {
       context: context,
       barrierDismissible: false,
       builder: (context) => AlertDialog(
-        title: Row(
+        title: const Row(
           children: [
-            const Icon(Icons.check_circle, color: Colors.green, size: 28),
-            const SizedBox(width: 8),
-            const Text('Cliente Cadastrado!'),
+            Icon(Icons.check_circle, color: Colors.green, size: 28),
+            SizedBox(width: 8),
+            Text('Cliente Cadastrado!'),
           ],
         ),
         content: Column(

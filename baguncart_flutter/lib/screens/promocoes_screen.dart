@@ -143,7 +143,7 @@ class _PromocoesScreenState extends State<PromocoesScreen> {
                         child: ListTile(
                           leading: CircleAvatar(
                             backgroundColor: _getStatusColor(promocao),
-                            child: Icon(
+                            child: const Icon(
                               Icons.local_offer,
                               color: Colors.white,
                               size: 20,
